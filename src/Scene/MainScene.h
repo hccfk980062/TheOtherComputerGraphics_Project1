@@ -30,9 +30,8 @@ namespace CG
 		void OnMouseClick(int key, int action);
 		void OnMouseDrag(double xPos, double yPos);
 		void SetMode(int mode);
-
-	private:
 		Camera	freeViewCamera;
+	private:
 
 		GLenum mode = GL_FILL; // GL_FILL or GL_LINE
 
@@ -53,7 +52,7 @@ namespace CG
 		Model* model_Train;
 
 		std::array<bool, 4>pressedButton;//W,S,A,D
-		bool flag_RightButtonDown;
+		bool flag_RightButtonDown = false;
 
 
 		double last_Xpos = 0;

@@ -5,6 +5,7 @@
 #include <imgui_internal.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_glfw.h>
+#include <ImGuizmo.h>
 
 #include "App.h"
 
@@ -60,7 +61,7 @@ namespace CG
 		// Setup Dear ImGui context
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
@@ -74,16 +75,14 @@ namespace CG
 		ImGui_ImplOpenGL3_Init(glsl_version);
 
 		glfwSetWindowUserPointer(mainWindow, this);
-		glfwSetFramebufferSizeCallback(
-			mainWindow,
-			[](GLFWwindow* window, int w, int h)
+
+		glfwSetFramebufferSizeCallback(mainWindow,[](GLFWwindow* window, int w, int h)
 			{
 				auto app = static_cast<App*>(glfwGetWindowUserPointer(window));
 				auto mainScene = app->GetMainScene();
 				mainScene->OnResize(w, h);
 			}
 		);
-
 		glfwSetKeyCallback(mainWindow, [](GLFWwindow* window, int key, int scancode, int action, int mode)
 			{
 				ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mode);
@@ -154,25 +153,41 @@ namespace CG
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
+			/*
+			// ImGuizmo 必須在 ImGui::NewFrame() 之後呼叫
+			ImGuizmo::BeginFrame();
 
+			// 設定 ImGuizmo 的繪製區域（對應視口大小）
+			int width, height;
+			glfwGetFramebufferSize(mainWindow, &width, &height);
+			ImGuizmo::SetRect(0, 0, (float)width, (float)height);
+			glm::mat4 modelMtrx = glm::mat4(1.0f);
+
+			ImGuizmo::Manipulate(
+				glm::value_ptr(mainScene->freeViewCamera.GetViewMatrix()),
+				glm::value_ptr(mainScene->freeViewCamera.GetProjectionMatrix(width, height)),
+				ImGuizmo::TRANSLATE,   // 操作模式
+				ImGuizmo::LOCAL,       // 座標空間
+				glm::value_ptr(modelMtrx)
+			);
+			*/
 			if (showControlWindow)
 			{
 				controlWindow->Display();
 			}
 
-			// GUI Rendering
-			ImGui::Render();
 
 			// Render 3D scene
 			Render();
 
+			// 渲染 ImGui
+			ImGui::Render();
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 			// Update and Render additional Platform Windows
 			// (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
 			//  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
 			ImGuiIO& io = ImGui::GetIO();
-			(void)io;
 			if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 			{
 				GLFWwindow* backup_current_context = glfwGetCurrentContext();
