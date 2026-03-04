@@ -62,9 +62,11 @@ namespace CG
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
+
+		//NO U
+		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+		////io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
 		io.FontGlobalScale = 1.5f; // Scales all UI elements by 1.5x
 
 		// Setup Dear ImGui style
@@ -153,29 +155,11 @@ namespace CG
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
-			/*
-			// ImGuizmo 必須在 ImGui::NewFrame() 之後呼叫
-			ImGuizmo::BeginFrame();
 
-			// 設定 ImGuizmo 的繪製區域（對應視口大小）
-			int width, height;
-			glfwGetFramebufferSize(mainWindow, &width, &height);
-			ImGuizmo::SetRect(0, 0, (float)width, (float)height);
-			glm::mat4 modelMtrx = glm::mat4(1.0f);
-
-			ImGuizmo::Manipulate(
-				glm::value_ptr(mainScene->freeViewCamera.GetViewMatrix()),
-				glm::value_ptr(mainScene->freeViewCamera.GetProjectionMatrix(width, height)),
-				ImGuizmo::TRANSLATE,   // 操作模式
-				ImGuizmo::LOCAL,       // 座標空間
-				glm::value_ptr(modelMtrx)
-			);
-			*/
 			if (showControlWindow)
 			{
 				controlWindow->Display();
 			}
-
 
 			// Render 3D scene
 			Render();
@@ -184,6 +168,8 @@ namespace CG
 			ImGui::Render();
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+			//NO U
+			/*
 			// Update and Render additional Platform Windows
 			// (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
 			//  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
@@ -195,7 +181,7 @@ namespace CG
 				ImGui::RenderPlatformWindowsDefault();
 				glfwMakeContextCurrent(backup_current_context);
 			}
-
+			*/
 			glfwSwapBuffers(mainWindow);
 		}
 	}
