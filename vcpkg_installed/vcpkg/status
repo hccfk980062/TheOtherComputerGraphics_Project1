@@ -1,0 +1,33 @@
+Package: vcpkg-cmake-config
+Version: 2024-05-23
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 8fe973245cfc9a55ba968a7ead6cb720b013d02a1c2715ab5e5e1fb6fb885663
+Status: install ok installed
+
+Package: vcpkg-cmake
+Version: 2024-04-23
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 344338392cc481171c169cf94688a68da171179bbd62b9df41b4204ffa9e3829
+Status: install ok installed
+
+Package: imgui
+Version: 1.91.9
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: be90720ca8299b32d072bf48210c09d51e51a7a5f970869c506be4f997ab981a
+Description: Bloat-free Immediate Mode Graphical User interface for C++ with minimal dependencies.
+Status: install ok installed
+
+Package: imguizmo
+Version: 2024-05-29
+Port-Version: 1
+Depends: imgui, vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 3bf08165610a1df65112f2870981155d8ebfb669e2a1467b9296e02697ea2e64
+Description: Immediate mode 3D gizmo for scene editing and other controls based on Dear ImGui
+Status: install ok installed
+

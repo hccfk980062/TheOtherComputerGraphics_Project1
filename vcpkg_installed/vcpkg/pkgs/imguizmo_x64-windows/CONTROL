@@ -1,0 +1,8 @@
+Package: imguizmo
+Version: 2024-05-29
+Port-Version: 1
+Depends: imgui, vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 3bf08165610a1df65112f2870981155d8ebfb669e2a1467b9296e02697ea2e64
+Description: Immediate mode 3D gizmo for scene editing and other controls based on Dear ImGui

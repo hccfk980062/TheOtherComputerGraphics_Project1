@@ -38,6 +38,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_SOURCE_DIR}/include/imgui/misc/cpp"
     "${CMAKE_SOURCE_DIR}/include/imgui/misc/freetype"
     "${CMAKE_SOURCE_DIR}/include/glad4.6/include"
+    "${CMAKE_SOURCE_DIR}/include/imguizmo"
 )
 
 # ─── Link .lib Files ────────────────────────────────────────────
@@ -72,3 +73,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         $<TARGET_FILE_DIR:${PROJECT_NAME}>/objModels
     COMMENT "複製 3D物件檔案 到輸出目錄..."
 )
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-windows")
+
+find_package(imguizmo CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE imguizmo::imguizmo)
