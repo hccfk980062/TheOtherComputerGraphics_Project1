@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <memory>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -11,6 +12,7 @@
 
 #include "../Shader/Shader.h"
 #include "Model/ModelLoader.h"
+#include "Transform.h"
 
 #include "Camera/Camera.h"
 namespace CG
@@ -30,7 +32,14 @@ namespace CG
 		void OnMouseClick(int key, int action);
 		void OnMouseDrag(double xPos, double yPos);
 		void SetMode(int mode);
-		Camera	freeViewCamera;
+		
+		Camera freeViewCamera;
+
+		// 新增：物件管理
+		std::vector<SceneObject> sceneObjects;
+		SceneObject* GetObjectByIndex(int index);
+		int GetObjectCount() const { return sceneObjects.size(); }
+
 	private:
 
 		GLenum mode = GL_FILL; // GL_FILL or GL_LINE

@@ -16,7 +16,6 @@ namespace CG
 		mainWindow = nullptr;
 
 		controlWindow = nullptr;
-		showControlWindow = true;
 
 		mainScene = nullptr;
 	}
@@ -126,11 +125,14 @@ namespace CG
 		controlWindow = new ControlWindow();
 		controlWindow->Initialize();
 
+		inspectorWindow = new InspectorWindow();
+		inspectorWindow->Initialize();
+
 		mainScene = new MainScene();
 		mainScene->Initialize();
 
 		controlWindow->SetTargetScene(mainScene);
-
+		inspectorWindow->SetTargetScene(mainScene);
 		// Initialization done
 		return true;
 	}
@@ -156,13 +158,30 @@ namespace CG
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
 
-			if (showControlWindow)
-			{
-				controlWindow->Display();
-			}
+			// ImGuizmo 必須在 ImGui::NewFrame() 之後呼叫
+			ImGuizmo::BeginFrame();
+
+			// 設定 ImGuizmo 的繪製區域（對應視口大小）
+			int width, height;
+			glfwGetFramebufferSize(mainWindow, &width, &height);
+			ImGuizmo::SetRect(0, 0, (float)width, (float)height);
+
+			controlWindow->Display();
+			inspectorWindow->Display();
 
 			// Render 3D scene
 			Render();
+
+			glm::mat4 testModelMtrx = glm::mat4(1.0f);
+
+			ImGuizmo::MODE mode = ImGuizmo::LOCAL;  // 局部座標
+			ImGuizmo::Manipulate(
+				glm::value_ptr(mainScene->freeViewCamera.GetViewMatrix()),
+				glm::value_ptr(mainScene->freeViewCamera.GetProjectionMatrix(width, height)),
+				ImGuizmo::TRANSLATE,   // 操作模式
+				ImGuizmo::LOCAL,       // 座標空間
+				glm::value_ptr(testModelMtrx)
+			);
 
 			// 渲染 ImGui
 			ImGui::Render();

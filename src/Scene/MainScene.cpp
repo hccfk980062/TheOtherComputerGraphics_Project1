@@ -81,7 +81,22 @@ namespace CG
 		// 5. 解除綁定 (防止後續誤操作)
 		glBindVertexArray(0);
 
+		// 初始化場景物件
+		SceneObject trainObj;
+		trainObj.name = "Train Model";
+		trainObj.model = model_Train;
+		trainObj.objectType = 1;
+		trainObj.transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
+		sceneObjects.push_back(trainObj);
+
 		return true;
+	}
+
+	SceneObject* MainScene::GetObjectByIndex(int index)
+	{
+		if (index >= 0 && index < sceneObjects.size())
+			return &sceneObjects[index];
+		return nullptr;
 	}
 
 	void MainScene::Update(double dt)
@@ -98,26 +113,21 @@ namespace CG
 		// Start drawing
 		shaderProgram_worldObject->use();
 
-		glm::mat4 model = glm::rotate(
-			glm::mat4(1.0f),
-			(float)glfwGetTime(),
-			glm::vec3(0.5f, 1.0f, 0.0f)   // rotation axis
-		);
-
-		glm::mat4 otherView = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
-
 		glm::mat4 view = freeViewCamera.GetViewMatrix();
-
 		glm::mat4 proj = glm::perspective(glm::radians(45.0f), (float)windowWidth / windowHeigh, 0.1f, 100.0f);
 
-		shaderProgram_worldObject->setUnifMat4("model", model);
-		shaderProgram_worldObject->setUnifMat4("view", view);
-		shaderProgram_worldObject->setUnifMat4("projection", proj);
-
-		//glBindVertexArray(VertexArrayObject);
-		//glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-		model_Train->Draw(*shaderProgram_worldObject);
-
+		// 渲染所有場景物件
+		for (const auto& obj : sceneObjects)
+		{
+			if (obj.model)
+			{
+				glm::mat4 model = obj.transform.GetModelMatrix();
+				shaderProgram_worldObject->setUnifMat4("model", model);
+				shaderProgram_worldObject->setUnifMat4("view", view);
+				shaderProgram_worldObject->setUnifMat4("projection", proj);
+				obj.model->Draw(*shaderProgram_worldObject);
+			}
+		}
 	}
 
 	void MainScene::OnResize(int width, int height)
@@ -201,20 +211,16 @@ namespace CG
 		}
 	}
 
-
-	void MainScene::SetMode(int mode)
+	void MainScene::SetMode(int mode_)
 	{
-		switch (mode)
+		mode = mode_;
+		if (mode_ == 0)
 		{
-		case 0:
-			this->mode = GL_FILL;
-			break;
-		case 1:
-			this->mode = GL_LINE;
-			break;
-		default:
-			this->mode = GL_FILL;
-			break;
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+		else if (mode_ == 1)
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		}
 	}
 }

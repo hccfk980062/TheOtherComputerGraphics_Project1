@@ -8,6 +8,8 @@
 #include <GLFW/glfw3.h>
 
 #include "Window/ControlWindow.h"
+#include<Window/InspectorWindow/InspectorWindow.h>
+
 #include "Scene/MainScene.h"
 
 namespace CG
@@ -30,7 +32,7 @@ namespace CG
 		GLFWwindow* mainWindow;
 
 		ControlWindow* controlWindow;
-		bool showControlWindow;
+		InspectorWindow* inspectorWindow;
 
 		MainScene* mainScene;
 
