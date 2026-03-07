@@ -54,7 +54,6 @@ namespace CG
 					{
 						modeIndex = n;
 						std::cout << "Set Mode " << modeIndex << std::endl;
-						targetScene->SetMode(n);
 					}
 
 					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)

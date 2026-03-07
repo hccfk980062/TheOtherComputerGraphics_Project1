@@ -8,15 +8,11 @@
 #include <ImGuizmo.h>
 
 #include "App.h"
-
 namespace CG
 {
 	App::App()
 	{
 		mainWindow = nullptr;
-
-		controlWindow = nullptr;
-
 		mainScene = nullptr;
 	}
 
@@ -61,12 +57,8 @@ namespace CG
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
-
-		//NO U
-		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
-		////io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
-		io.FontGlobalScale = 1.5f; // Scales all UI elements by 1.5x
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		io.FontGlobalScale = 1.5f;
 
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
@@ -77,53 +69,11 @@ namespace CG
 
 		glfwSetWindowUserPointer(mainWindow, this);
 
-		glfwSetFramebufferSizeCallback(mainWindow,[](GLFWwindow* window, int w, int h)
-			{
-				auto app = static_cast<App*>(glfwGetWindowUserPointer(window));
-				auto mainScene = app->GetMainScene();
-				mainScene->OnResize(w, h);
-			}
-		);
-		glfwSetKeyCallback(mainWindow, [](GLFWwindow* window, int key, int scancode, int action, int mode)
-			{
-				ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mode);
+		sceneRenderer = new SceneRenderer();
+		sceneRenderer->Initialize(1280, 720);
 
-				ImGuiIO& io = ImGui::GetIO();
-				if (io.WantCaptureKeyboard) return;
-
-				auto app = static_cast<App*>(glfwGetWindowUserPointer(window));
-				auto mainScene = app->GetMainScene();
-				mainScene->OnKeyboard(key, action);
-			}
-		);
-		glfwSetMouseButtonCallback(mainWindow, [](GLFWwindow* window, int button, int action, int mode)
-			{
-				ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mode);
-
-				ImGuiIO& io = ImGui::GetIO();
-				if (io.WantCaptureKeyboard) return;
-
-				auto app = static_cast<App*>(glfwGetWindowUserPointer(window));
-				auto mainScene = app->GetMainScene();
-				mainScene->OnMouseClick(button, action);
-			}
-		);
-		glfwSetCursorPosCallback(mainWindow, [](GLFWwindow* window, double xPos, double yPos)
-			{
-				ImGui_ImplGlfw_CursorPosCallback(window, xPos, yPos);
-
-				ImGuiIO& io = ImGui::GetIO();
-				if (io.WantCaptureMouse) return;
-
-				auto app = static_cast<App*>(glfwGetWindowUserPointer(window));
-				auto mainScene = app->GetMainScene();
-				mainScene->OnMouseDrag(xPos, yPos);
-			}
-		);
-
-
-		controlWindow = new ControlWindow();
-		controlWindow->Initialize();
+		viewportWindow = new ViewportWindow();
+		viewportWindow->Initialize();
 
 		inspectorWindow = new InspectorWindow();
 		inspectorWindow->Initialize();
@@ -131,7 +81,6 @@ namespace CG
 		mainScene = new MainScene();
 		mainScene->Initialize();
 
-		controlWindow->SetTargetScene(mainScene);
 		inspectorWindow->SetTargetScene(mainScene);
 		// Initialization done
 		return true;
@@ -141,11 +90,6 @@ namespace CG
 	{
 		while (!glfwWindowShouldClose(mainWindow))
 		{
-			// Poll and handle events (inputs, window resize, etc.)
-			// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-			// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
-			// - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
-			// Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
 			glfwPollEvents();
 
 			timeNow = glfwGetTime();
@@ -153,54 +97,36 @@ namespace CG
 			timeLast = timeNow;
 			Update(timeDelta);
 
-			// Start the Dear ImGui frame
+			// ── Step 0: 用上一幀記錄的 Viewport 尺寸，在 Render 之前同步 FBO ──────
+			// 這樣可以確保 RenderScene 使用的是正確的尺寸，
+			// 而不是在 render 完之後才 resize（那樣會清空剛渲染好的 texture）
+			viewportWindow->SyncFramebufferSize(sceneRenderer->getCurrentFramebuffer());
+
+			// ── Step 1: Render 3D scene → FBO ────────────────────────────────────
+			sceneRenderer->RenderScene(mainScene);
+
+			// ── Step 2: 清空主視窗（作為 ImGui 的背景） ───────────────────────────
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			int display_w, display_h;
+			glfwGetFramebufferSize(mainWindow, &display_w, &display_h);
+			glViewport(0, 0, display_w, display_h);
+			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			// ── Step 3: Render ImGui UI ────────────────────────────────────────────
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
 
-			// ImGuizmo 必須在 ImGui::NewFrame() 之後呼叫
-			ImGuizmo::BeginFrame();
+			BeginDockspace();
 
-			// 設定 ImGuizmo 的繪製區域（對應視口大小）
-			int width, height;
-			glfwGetFramebufferSize(mainWindow, &width, &height);
-			ImGuizmo::SetRect(0, 0, (float)width, (float)height);
-
-			controlWindow->Display();
+			// UpdateScreen 內部會記錄本幀的 Viewport 尺寸，供下一幀 Step 0 使用
+			viewportWindow->UpdateScreen(mainScene, sceneRenderer->getCurrentFramebuffer());
 			inspectorWindow->Display();
 
-			// Render 3D scene
-			Render();
-
-			glm::mat4 testModelMtrx = glm::mat4(1.0f);
-
-			ImGuizmo::MODE mode = ImGuizmo::LOCAL;  // 局部座標
-			ImGuizmo::Manipulate(
-				glm::value_ptr(mainScene->freeViewCamera.GetViewMatrix()),
-				glm::value_ptr(mainScene->freeViewCamera.GetProjectionMatrix(width, height)),
-				ImGuizmo::TRANSLATE,   // 操作模式
-				ImGuizmo::LOCAL,       // 座標空間
-				glm::value_ptr(testModelMtrx)
-			);
-
-			// 渲染 ImGui
 			ImGui::Render();
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-			//NO U
-			/*
-			// Update and Render additional Platform Windows
-			// (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
-			//  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
-			ImGuiIO& io = ImGui::GetIO();
-			if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-			{
-				GLFWwindow* backup_current_context = glfwGetCurrentContext();
-				ImGui::UpdatePlatformWindows();
-				ImGui::RenderPlatformWindowsDefault();
-				glfwMakeContextCurrent(backup_current_context);
-			}
-			*/
 			glfwSwapBuffers(mainWindow);
 		}
 	}
@@ -218,15 +144,32 @@ namespace CG
 
 	void App::Update(double dt)
 	{
-		mainScene->Update(dt);
 	}
 
-	void App::Render()
+	void App::BeginDockspace()
 	{
-		int display_w, display_h;
-		glfwGetFramebufferSize(mainWindow, &display_w, &display_h);
-		glViewport(0, 0, display_w, display_h);
+		ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(viewport->Pos);
+		ImGui::SetNextWindowSize(viewport->Size);
+		ImGui::SetNextWindowViewport(viewport->ID);
 
-		mainScene->Render(display_w, display_h);
+		ImGuiWindowFlags host_flags =
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoBringToFrontOnFocus |
+			ImGuiWindowFlags_NoNavFocus |
+			ImGuiWindowFlags_NoBackground |
+			ImGuiWindowFlags_MenuBar;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+		ImGui::Begin("DockSpace", nullptr, host_flags);
+		ImGui::PopStyleVar();
+
+		ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
+		ImGui::DockSpace(dockspace_id, ImVec2(0, 0), ImGuiDockNodeFlags_PassthruCentralNode);
+
+		ImGui::End();
 	}
 }
