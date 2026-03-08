@@ -58,6 +58,7 @@ namespace CG
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		//io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 		io.FontGlobalScale = 1.5f;
 
 		// Setup Dear ImGui style
@@ -117,11 +118,13 @@ namespace CG
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
+			ImGuizmo::BeginFrame();
 
 			BeginDockspace();
 
 			// UpdateScreen 內部會記錄本幀的 Viewport 尺寸，供下一幀 Step 0 使用
 			viewportWindow->UpdateScreen(mainScene, sceneRenderer->getCurrentFramebuffer());
+
 			inspectorWindow->Display();
 
 			ImGui::Render();

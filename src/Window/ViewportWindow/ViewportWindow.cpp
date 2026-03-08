@@ -39,6 +39,7 @@ namespace CG
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::Begin("Viewport (ImGuizmo NMSL Edition)", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		ImGui::PopStyleVar();
 
 		// ── 記錄本幀的 Viewport 尺寸，供下一幀 SyncFramebufferSize() 使用 ──────
 		ImVec2 viewportSize = ImGui::GetContentRegionAvail();
@@ -53,57 +54,69 @@ namespace CG
 		ImVec2 imageScreenPos = ImGui::GetCursorScreenPos();
 
 		// ── 顯示 FBO texture ───────────────────────────────────────────────────
-		ImGui::Image((ImTextureID)(intptr_t)framebuffer->colorTexture, viewportSize, ImVec2(0, 1), ImVec2(1, 0));  // flip Y (OpenGL vs ImGui coords));
+		ImGui::GetWindowDrawList()->AddImage(
+			(ImTextureID)(intptr_t)framebuffer->colorTexture,
+			imageScreenPos,
+			ImVec2(imageScreenPos.x + viewportSize.x, imageScreenPos.y + viewportSize.y),
+			ImVec2(0, 1), ImVec2(1, 0)  // flip Y
+		);
 
-		// ── [Bug Fix #4] 滑鼠互動：在 Viewport 內以 ImGuiIO 驅動相機 ───────────
-		// 原本的 GLFW callbacks 被 comment 掉後完全沒有替代輸入處理
-		if (ImGui::IsItemHovered())
+		// 用 IsWindowHovered() 偵測輸入
+		if (ImGui::IsWindowHovered())
 		{
 			ImGuiIO& io = ImGui::GetIO();
-
-			// 右鍵拖曳 → 旋轉相機
 			if (io.MouseDown[ImGuiMouseButton_Right])
 			{
 				float dx = io.MouseDelta.x;
-				float dy = -io.MouseDelta.y;  // ImGui Y 向下，相機 pitch 需反轉
+				float dy = -io.MouseDelta.y;
 				if (dx != 0.0f || dy != 0.0f)
 					scene->freeViewCamera.ProcessMouseMovement(dx, dy);
-			}
 
-			// 滾輪 → 縮放（若 Camera 有實作 ProcessMouseScroll）
-			if (io.MouseWheel != 0.0f)
-			{
-				// scene->freeViewCamera.ProcessMouseScroll(io.MouseWheel);
+				std::array<bool, 4> pressedKey = {
+					ImGui::IsKeyDown(ImGuiKey_W),
+					ImGui::IsKeyDown(ImGuiKey_S),
+					ImGui::IsKeyDown(ImGuiKey_A),
+					ImGui::IsKeyDown(ImGuiKey_D)
+				};
+				scene->freeViewCamera.ProcessKeyboard(pressedKey, 0.05);
 			}
 		}
-
+		
 		// ── ImGuizmo overlay ───────────────────────────────────────────────────
 		ImGuizmo::SetOrthographic(false);
 		ImGuizmo::SetDrawlist();  // 畫到當前視窗的 drawlist
 
 		// [Bug Fix #2] 使用 imageScreenPos（content 起點）而非 GetWindowPos()
-		ImGuizmo::SetRect(
-			imageScreenPos.x, imageScreenPos.y,
-			viewportSize.x, viewportSize.y);
+		ImGuizmo::SetRect(imageScreenPos.x, imageScreenPos.y, viewportSize.x, viewportSize.y);
+
+		glm::mat4 viewMatrix = scene->freeViewCamera.GetViewMatrix();
+		glm::mat4 projMatrix = scene->freeViewCamera.GetProjectionMatrix();
+
+		glm::mat4 identityMatrix = glm::mat4(1.0f);
+
+		float viewFlat[16], projFlat[16], identityFlat[16];
+		memcpy(viewFlat, glm::value_ptr(viewMatrix), sizeof(viewFlat));
+		memcpy(projFlat, glm::value_ptr(projMatrix), sizeof(projFlat));
+		memcpy(identityFlat, glm::value_ptr(identityMatrix), sizeof(identityFlat));
 
 		if (!scene->sceneObjects.empty())
 		{
 			glm::mat4 modelMatrix = scene->sceneObjects[0].transform.GetModelMatrix();
-			glm::mat4 viewMatrix = scene->freeViewCamera.GetViewMatrix();
-			glm::mat4 projMatrix = scene->freeViewCamera.GetProjectionMatrix();
-
-			float modelFlat[16], viewFlat[16], projFlat[16];
+			float modelFlat[16];
 			memcpy(modelFlat, glm::value_ptr(modelMatrix), sizeof(modelFlat));
-			memcpy(viewFlat, glm::value_ptr(viewMatrix), sizeof(viewFlat));
-			memcpy(projFlat, glm::value_ptr(projMatrix), sizeof(projFlat));
 
-			ImGuizmo::Manipulate(
-				viewFlat, projFlat,
-				ImGuizmo::TRANSLATE,
-				ImGuizmo::WORLD,
-				modelFlat
-			);
+			ImGuiIO& io = ImGui::GetIO();
+			std::cout
+				<< "IsOver=" << ImGuizmo::IsOver()
+				<< " aspect=" << (viewportSize.x / viewportSize.y)
+				<< " WantCapture=" << io.WantCaptureMouse
+				<< " MouseDown=" << io.MouseDown[0]
+				<< " MousePos=(" << io.MousePos.x << "," << io.MousePos.y << ")"
+				<< " Rect=(" << imageScreenPos.x << "," << imageScreenPos.y
+				<< " " << viewportSize.x << "x" << viewportSize.y << ")"
+				<< std::endl;
 
+			ImGuizmo::Manipulate(viewFlat, projFlat,ImGuizmo::TRANSLATE,ImGuizmo::LOCAL,modelFlat);
 			// ── [Bug Fix #3] Gizmo 操作結果寫回 Transform ─────────────────────
 			// 原本的 memcpy 被 comment 掉，且目標是 local variable，完全沒有作用
 			if (ImGuizmo::IsUsing())
@@ -111,17 +124,14 @@ namespace CG
 				float t[3], r[3], s[3];
 				ImGuizmo::DecomposeMatrixToComponents(modelFlat, t, r, s);
 
-				scene->sceneObjects[0].transform.position =
-					glm::vec3(t[0], t[1], t[2]);
+				scene->sceneObjects[0].transform.position = glm::vec3(t[0], t[1], t[2]);
 
 				// 若 Transform 有 rotation / scale 欄位，一起更新：
 				// scene->sceneObjects[0].transform.rotation = glm::vec3(r[0], r[1], r[2]);
 				// scene->sceneObjects[0].transform.scale    = glm::vec3(s[0], s[1], s[2]);
 			}
 		}
-
 		ImGui::End();
-		ImGui::PopStyleVar();
 	}
 	/*
 	void ViewportWindow::OnResize(int width, int height)
