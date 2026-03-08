@@ -8,8 +8,10 @@
 #include <GLFW/glfw3.h>
 
 #include "Window/ControlWindow.h"
-#include<Window/InspectorWindow/InspectorWindow.h>
+#include "Window/InspectorWindow/InspectorWindow.h"
+#include "Window/ViewportWindow/ViewportWindow.h"
 
+#include "Scene/SceneRenderer.h"
 #include "Scene/MainScene.h"
 
 namespace CG
@@ -26,14 +28,14 @@ namespace CG
 
 	private:
 		void Update(double dt);
-		void Render();
-
+		void BeginDockspace();
 	private:
 		GLFWwindow* mainWindow;
 
-		ControlWindow* controlWindow;
 		InspectorWindow* inspectorWindow;
+		ViewportWindow* viewportWindow;
 
+		SceneRenderer* sceneRenderer;
 		MainScene* mainScene;
 
 		double timeNow = 0;

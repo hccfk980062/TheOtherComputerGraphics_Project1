@@ -75,5 +75,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 )
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-windows")
 
+find_package(imgui CONFIG REQUIRED)
 find_package(imguizmo CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE imguizmo::imguizmo)
+target_link_libraries(${PROJECT_NAME} PRIVATE imgui::imgui)
