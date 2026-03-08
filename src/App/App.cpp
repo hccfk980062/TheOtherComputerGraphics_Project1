@@ -83,6 +83,8 @@ namespace CG
 		mainScene->Initialize();
 
 		inspectorWindow->SetTargetScene(mainScene);
+		printf("Project Source Header Version: %s (%d)\n", IMGUI_VERSION, IMGUI_VERSION_NUM);
+		IMGUI_CHECKVERSION();
 		// Initialization done
 		return true;
 	}

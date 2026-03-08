@@ -104,7 +104,6 @@ namespace CG
 			glm::mat4 modelMatrix = scene->sceneObjects[0].transform.GetModelMatrix();
 			float modelFlat[16];
 			memcpy(modelFlat, glm::value_ptr(modelMatrix), sizeof(modelFlat));
-
 			ImGuiIO& io = ImGui::GetIO();
 			std::cout
 				<< "IsOver=" << ImGuizmo::IsOver()
