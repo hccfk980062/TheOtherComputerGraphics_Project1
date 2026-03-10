@@ -20,11 +20,9 @@ namespace CG
 
 	private:
 		MainScene* targetScene = nullptr;
-		int selectedObjectIndex = -1;
 
 		// UI helpers
 		void DisplayTransformPanel();
 		void DisplayCameraPanel();
-		void DisplayScenePanel();
 	};
 }

@@ -98,22 +98,12 @@ namespace CG
 		memcpy(viewFlat, glm::value_ptr(viewMatrix), sizeof(viewFlat));
 		memcpy(projFlat, glm::value_ptr(projMatrix), sizeof(projFlat));
 		memcpy(identityFlat, glm::value_ptr(identityMatrix), sizeof(identityFlat));
-
-		if (!scene->sceneObjects.empty())
+		
+		if (!scene->rootObject.children.empty() && scene->selectedObject != nullptr)
 		{
-			glm::mat4 modelMatrix = scene->sceneObjects[0].transform.GetModelMatrix();
+			glm::mat4 modelMatrix = scene->selectedObject->transform.GetModelMatrix();
 			float modelFlat[16];
 			memcpy(modelFlat, glm::value_ptr(modelMatrix), sizeof(modelFlat));
-			ImGuiIO& io = ImGui::GetIO();
-			std::cout
-				<< "IsOver=" << ImGuizmo::IsOver()
-				<< " aspect=" << (viewportSize.x / viewportSize.y)
-				<< " WantCapture=" << io.WantCaptureMouse
-				<< " MouseDown=" << io.MouseDown[0]
-				<< " MousePos=(" << io.MousePos.x << "," << io.MousePos.y << ")"
-				<< " Rect=(" << imageScreenPos.x << "," << imageScreenPos.y
-				<< " " << viewportSize.x << "x" << viewportSize.y << ")"
-				<< std::endl;
 
 			ImGuizmo::Manipulate(viewFlat, projFlat,ImGuizmo::TRANSLATE,ImGuizmo::LOCAL,modelFlat);
 			// ── [Bug Fix #3] Gizmo 操作結果寫回 Transform ─────────────────────
@@ -123,13 +113,15 @@ namespace CG
 				float t[3], r[3], s[3];
 				ImGuizmo::DecomposeMatrixToComponents(modelFlat, t, r, s);
 
-				scene->sceneObjects[0].transform.position = glm::vec3(t[0], t[1], t[2]);
+				scene->selectedObject->transform.position = glm::vec3(t[0], t[1], t[2]);
 
 				// 若 Transform 有 rotation / scale 欄位，一起更新：
 				// scene->sceneObjects[0].transform.rotation = glm::vec3(r[0], r[1], r[2]);
 				// scene->sceneObjects[0].transform.scale    = glm::vec3(s[0], s[1], s[2]);
 			}
 		}
+		
+
 		ImGui::End();
 	}
 	/*

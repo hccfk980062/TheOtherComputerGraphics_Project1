@@ -2,6 +2,7 @@
 #include <array>
 #include <string>
 #include <map>
+#include<stack>
 #include <vector>
 #include <memory>
 
@@ -22,17 +23,21 @@ namespace CG
 		~MainScene();
 
 		auto Initialize() -> bool;
-		void Render(Shader* shader, glm::mat4 projectionMtrx);
+		void Render(Shader* shader);
 		
 		Camera freeViewCamera;
 
 		//物件管理
-		std::vector<SceneObject> sceneObjects;
-		SceneObject* GetObjectByIndex(int index);
-		int GetObjectCount() const { return sceneObjects.size(); }
+		SceneObject rootObject;
+		SceneObject* selectedObject = nullptr;
 
 	private:
 		Model* model_Train;
+		Model* model_OtherTrain;
+
+
+		std::stack<glm::mat4>modelMtrxStack;
+		void RenderObjectRecursively(Shader* shader, SceneObject* obj);
 	};
 }
 

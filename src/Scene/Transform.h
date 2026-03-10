@@ -25,9 +25,14 @@ namespace CG
 
 	struct SceneObject
 	{
+		uint32_t id;
+
 		std::string name;
 		Transform transform;
 		Model* model = nullptr;
 		int objectType; // 0=Camera, 1=Model, 2=Light
+
+		SceneObject* parent = nullptr;
+		std::vector<std::unique_ptr<SceneObject>> children;
 	};
 }

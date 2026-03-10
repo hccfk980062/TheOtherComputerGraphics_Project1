@@ -5,7 +5,7 @@
 namespace CG
 {
 	InspectorWindow::InspectorWindow()
-		: targetScene(nullptr), selectedObjectIndex(-1)
+		: targetScene(nullptr)
 	{
 	}
 
@@ -20,30 +20,27 @@ namespace CG
 
 	void InspectorWindow::Display()
 	{
-		ImGui::SetNextWindowSize(ImVec2(350, 700), ImGuiCond_Once);
-		ImGui::SetNextWindowPos(ImVec2(1500, 20), ImGuiCond_Once);
-
 		if (ImGui::Begin("Totally not Unity Inspector", nullptr))
 		{
 			if (targetScene)
 			{
 				ImGui::BeginTabBar("InspectorTabs");
 				{
+					/*
 					if (ImGui::BeginTabItem("Scene"))
 					{
 						DisplayScenePanel();
 						ImGui::EndTabItem();
 					}
-
-					if (ImGui::BeginTabItem("Camera"))
-					{
-						DisplayCameraPanel();
-						ImGui::EndTabItem();
-					}
-
+					*/
 					if (ImGui::BeginTabItem("Transform"))
 					{
 						DisplayTransformPanel();
+						ImGui::EndTabItem();
+					}
+					if (ImGui::BeginTabItem("Camera"))
+					{
+						DisplayCameraPanel();
 						ImGui::EndTabItem();
 					}
 				}
@@ -55,31 +52,6 @@ namespace CG
 			}
 		}
 		ImGui::End();
-	}
-
-	void InspectorWindow::DisplayScenePanel()
-	{
-		ImGui::Text("Scene Objects");
-		ImGui::Separator();
-
-		int objectCount = targetScene->GetObjectCount();
-
-		ImGui::PushID("ObjectList");
-		{
-			for (int i = 0; i < objectCount; ++i)
-			{
-				SceneObject* obj = targetScene->GetObjectByIndex(i);
-				if (obj && ImGui::Selectable(obj->name.c_str(), selectedObjectIndex == i))
-				{
-					selectedObjectIndex = i;
-				}
-			}
-		}
-		ImGui::PopID();
-
-		ImGui::Spacing();
-		//ImGui::TextDisabled(ImGuiHelperText_Default);
-		ImGui::Text("Selected Index: %d", selectedObjectIndex);
 	}
 
 	void InspectorWindow::DisplayCameraPanel()
@@ -116,13 +88,13 @@ namespace CG
 		ImGui::Text("Transform Properties");
 		ImGui::Separator();
 
-		if (selectedObjectIndex < 0)
+		if (targetScene->selectedObject == nullptr)
 		{
-			ImGui::TextColored(ImVec4(1, 1, 0, 1), "Select an object to edit its transform");
+			ImGui::TextColored(ImVec4(1, 1, 0, 1), "Select an object in Hierarchy Window to edit its transform");
 			return;
 		}
 
-		SceneObject* selectedObject = targetScene->GetObjectByIndex(selectedObjectIndex);
+		SceneObject* selectedObject = targetScene->selectedObject;
 		if (!selectedObject)
 		{
 			ImGui::TextColored(ImVec4(1, 0, 0, 1), "Invalid object");

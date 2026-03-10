@@ -22,9 +22,8 @@ namespace CG
         glEnable(GL_DEPTH_TEST);
         
         scene->freeViewCamera.SetProjectionMatrix(framebuffer->width, framebuffer->height);
-        glm::mat4 projectionMtrx = scene->freeViewCamera.GetProjectionMatrix();
 
-        scene->Render(shaderProgram_worldObject, projectionMtrx);
+        scene->Render(shaderProgram_worldObject);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);  // back to default
     }

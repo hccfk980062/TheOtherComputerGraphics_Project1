@@ -7,9 +7,10 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include "Window/ControlWindow.h"
 #include "Window/InspectorWindow/InspectorWindow.h"
 #include "Window/ViewportWindow/ViewportWindow.h"
+#include "Window/HierarchyWindow/HierarchyWindow.h"
+#include "Window/SequencerWindow/SequencerWindow.h"
 
 #include "Scene/SceneRenderer.h"
 #include "Scene/MainScene.h"
@@ -34,6 +35,8 @@ namespace CG
 
 		InspectorWindow* inspectorWindow;
 		ViewportWindow* viewportWindow;
+		HierarchyWindow* hierarchyWindow;
+		SequencerWindow* sequencerWindow;
 
 		SceneRenderer* sceneRenderer;
 		MainScene* mainScene;
