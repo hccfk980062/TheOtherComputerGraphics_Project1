@@ -105,13 +105,8 @@ namespace CG
 		ImGui::TextDisabled("Position");
 		ImGui::DragFloat3("##Position", glm::value_ptr(selectedObject->transform.position), 0.1f);
 
-		glm::vec3 bufferedEulerAngles = glm::degrees(selectedObject->transform.rotation);
-
 		ImGui::TextDisabled("Rotation (Euler Angles)");
-		ImGui::InputFloat3("##Rotation", glm::value_ptr(bufferedEulerAngles));
-
-		bufferedEulerAngles = bufferedEulerAngles / (float)(180.0f / PI);
-		selectedObject->transform.rotation = bufferedEulerAngles;
+		ImGui::InputFloat3("##Rotation", glm::value_ptr(selectedObject->transform.rotation));
 
 		ImGui::TextDisabled("Scale");
 		ImGui::DragFloat3("##Scale", glm::value_ptr(selectedObject->transform.scale), 0.1f, 0.01f, 100.0f);
