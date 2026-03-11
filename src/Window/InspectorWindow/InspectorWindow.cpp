@@ -103,13 +103,22 @@ namespace CG
 
 		// Directly edit object transform
 		ImGui::TextDisabled("Position");
-		ImGui::DragFloat3("##Position", glm::value_ptr(selectedObject->transform.position), 0.1f);
+		if (ImGui::DragFloat3("##Position", glm::value_ptr(selectedObject->transform.position), 0.1f))
+		{
+			selectedObject->MarkDirty();
+		}
 
 		ImGui::TextDisabled("Rotation (Euler Angles)");
-		ImGui::InputFloat3("##Rotation", glm::value_ptr(selectedObject->transform.rotation));
+		if(ImGui::InputFloat3("##Rotation", glm::value_ptr(selectedObject->transform.rotation)))
+		{
+			selectedObject->MarkDirty();
+		}
 
 		ImGui::TextDisabled("Scale");
-		ImGui::DragFloat3("##Scale", glm::value_ptr(selectedObject->transform.scale), 0.1f, 0.01f, 100.0f);
+		if(ImGui::DragFloat3("##Scale", glm::value_ptr(selectedObject->transform.scale), 0.1f, 0.01f, 100.0f))
+		{
+			selectedObject->MarkDirty();
+		}
 
 		ImGui::Spacing();
 		if (ImGui::Button("Reset Transform", ImVec2(-1, 0)))
@@ -117,6 +126,7 @@ namespace CG
 			selectedObject->transform.position = glm::vec3(0.0f);
 			selectedObject->transform.rotation = glm::vec3(0.0f);
 			selectedObject->transform.scale = glm::vec3(1.0f);
+			selectedObject->MarkDirty();
 		}
 
 		// Display transformation matrix preview
