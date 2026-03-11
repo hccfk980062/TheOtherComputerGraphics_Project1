@@ -35,8 +35,6 @@ namespace CG
 		Model* model_Train;
 		Model* model_OtherTrain;
 
-
-		std::stack<glm::mat4>modelMtrxStack;
 		void RenderObjectRecursively(Shader* shader, SceneObject* obj);
 	};
 }

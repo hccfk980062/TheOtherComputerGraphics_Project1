@@ -15,8 +15,6 @@ namespace CG
 	{
 		rootObject.id = 0;
 
-		modelMtrxStack.push(glm::mat4(1.0f));
-
 		freeViewCamera = Camera(glm::vec3(-3, 0, 0));
 		freeViewCamera.configureLookAt(glm::vec3(1, 0, 0), glm::vec3(0, 1, 0));
 
@@ -58,8 +56,8 @@ namespace CG
 
 		if (obj->model != nullptr)
 			{
-				glm::mat4 model = obj->transform.GetModelMatrix();
-				shader->setUnifMat4("model", modelMtrxStack.top() * model);
+				glm::mat4 worldMatrix = obj->GetWorldMatrix();
+				shader->setUnifMat4("model", worldMatrix);
 				shader->setUnifMat4("view", viewMtrx);
 				shader->setUnifMat4("projection", projectionMtrx);
 				obj->model->Draw(*shader);
@@ -67,9 +65,7 @@ namespace CG
 
 		for (int i = 0; i < obj->children.size(); i++)
 		{
-			modelMtrxStack.push(obj->model != nullptr ? obj->transform.GetModelMatrix() : glm::mat4(1.0f));
 			RenderObjectRecursively(shader, obj->children[i].get());
-			modelMtrxStack.pop();
 		}
 	}
 }

@@ -1,38 +1,69 @@
 #pragma once
+
 #include <glm/glm.hpp>
+#include<glm/gtc/type_ptr.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace CG
 {
+#define PI 3.1415926
+
 	struct Transform
 	{
 		glm::vec3 position = glm::vec3(0.0f);
-		glm::vec3 rotation = glm::vec3(0.0f);  // 歐拉角度 (度)
+		glm::vec3 rotation = glm::vec3(0.0f); // Euler angles in degrees
 		glm::vec3 scale = glm::vec3(1.0f);
 
-		// 計算模型矩陣
-		glm::mat4 GetModelMatrix() const
+		// 計算本地矩陣（Local → Parent）
+		glm::mat4 GetLocalMatrix() const
 		{
-			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::translate(model, position);
-			model = glm::rotate(model, glm::radians(rotation.x), glm::vec3(1, 0, 0));
-			model = glm::rotate(model, glm::radians(rotation.y), glm::vec3(0, 1, 0));
-			model = glm::rotate(model, glm::radians(rotation.z), glm::vec3(0, 0, 1));
-			model = glm::scale(model, scale);
-			return model;
+			glm::mat4 t = glm::translate(glm::mat4(1.0f), position);
+			glm::mat4 r = glm::mat4_cast(glm::quat(glm::radians(rotation)));
+			glm::mat4 s = glm::scale(glm::mat4(1.0f), scale);
+			return t * r * s;  // TRS 順序
 		}
 	};
 
 	struct SceneObject
 	{
-		uint32_t id;
+    private:
+        mutable glm::mat4 cachedWorldMatrix = glm::mat4(1.0f);
+        mutable bool isDirty = true;
+    public:
+        uint32_t id;
+        std::string name;
+        Transform transform;         // Local transform（給使用者操作）
+        Model* model = nullptr;
+        int objectType = 0;
 
-		std::string name;
-		Transform transform;
-		Model* model = nullptr;
-		int objectType; // 0=Camera, 1=Model, 2=Light
+        SceneObject* parent = nullptr;
+        std::vector<std::unique_ptr<SceneObject>> children;
 
-		SceneObject* parent = nullptr;
-		std::vector<std::unique_ptr<SceneObject>> children;
+        // 遞迴向上取得世界矩陣
+        glm::mat4 GetWorldMatrix() const
+        {
+            if (isDirty)
+            {
+                if (parent != nullptr)
+                    cachedWorldMatrix = parent->GetWorldMatrix() * transform.GetLocalMatrix();
+                else
+                    cachedWorldMatrix = transform.GetLocalMatrix();
+
+                isDirty = false;
+            }
+            return cachedWorldMatrix;
+        }
+        void MarkDirty()
+        {
+            isDirty = true;
+            // 父物件改變時，所有子物件也需要更新
+            for (auto& child : children)
+                child->MarkDirty();
+        }
+
+        void SetPosition(const glm::vec3& pos) { transform.position = pos; }
+        void SetRotation(const glm::vec3& rot) { transform.rotation = rot; }
+        void SetScale(const glm::vec3& s) { transform.scale = s; }
 	};
 }

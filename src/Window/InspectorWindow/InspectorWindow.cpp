@@ -105,8 +105,13 @@ namespace CG
 		ImGui::TextDisabled("Position");
 		ImGui::DragFloat3("##Position", glm::value_ptr(selectedObject->transform.position), 0.1f);
 
+		glm::vec3 bufferedEulerAngles = glm::degrees(selectedObject->transform.rotation);
+
 		ImGui::TextDisabled("Rotation (Euler Angles)");
-		ImGui::DragFloat3("##Rotation", glm::value_ptr(selectedObject->transform.rotation), 1.0f, -360.0f, 360.0f);
+		ImGui::InputFloat3("##Rotation", glm::value_ptr(bufferedEulerAngles));
+
+		bufferedEulerAngles = bufferedEulerAngles / (float)(180.0f / PI);
+		selectedObject->transform.rotation = bufferedEulerAngles;
 
 		ImGui::TextDisabled("Scale");
 		ImGui::DragFloat3("##Scale", glm::value_ptr(selectedObject->transform.scale), 0.1f, 0.01f, 100.0f);
@@ -121,8 +126,8 @@ namespace CG
 
 		// Display transformation matrix preview
 		ImGui::Spacing();
-		ImGui::TextDisabled("Model Matrix (Preview)");
-		glm::mat4 model = selectedObject->transform.GetModelMatrix();
+		ImGui::TextDisabled("Local Model Matrix (Preview)");
+		glm::mat4 model = selectedObject->transform.GetLocalMatrix();
 
 		ImGui::Text("Row 0: (%.2f, %.2f, %.2f, %.2f)", model[0][0], model[0][1], model[0][2], model[0][3]);
 		ImGui::Text("Row 1: (%.2f, %.2f, %.2f, %.2f)", model[1][0], model[1][1], model[1][2], model[1][3]);
