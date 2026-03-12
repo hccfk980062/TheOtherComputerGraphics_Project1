@@ -195,8 +195,9 @@ namespace CG
 			matrixScale
 		);
 
+		glm::quat rotationQuat = glm::quat(glm::radians(glm::vec3(matrixRotation[0], matrixRotation[1], matrixRotation[2])));
 		transform.position = { matrixTranslation[0], matrixTranslation[1], matrixTranslation[2] };
-		transform.rotation = { matrixRotation[0],    matrixRotation[1],    matrixRotation[2] };
+		transform.rotation = rotationQuat;
 		transform.scale = { matrixScale[0],        matrixScale[1],       matrixScale[2] };
 	}
 

@@ -12,14 +12,14 @@ namespace CG
 	struct Transform
 	{
 		glm::vec3 position = glm::vec3(0.0f);
-		glm::vec3 rotation = glm::vec3(0.0f); // Euler angles in degrees
+		glm::quat rotation = glm::quat(); // Quaternion
 		glm::vec3 scale = glm::vec3(1.0f);
 
 		// 計算本地矩陣（Local → Parent）
 		glm::mat4 GetLocalMatrix() const
 		{
 			glm::mat4 t = glm::translate(glm::mat4(1.0f), position);
-			glm::mat4 r = glm::mat4_cast(glm::quat(glm::radians(rotation)));
+			glm::mat4 r = glm::mat4_cast(rotation);
 			glm::mat4 s = glm::scale(glm::mat4(1.0f), scale);
 			return t * r * s;  // TRS 順序
 		}
@@ -63,7 +63,14 @@ namespace CG
         }
 
         void SetPosition(const glm::vec3& pos) { transform.position = pos; }
-        void SetRotation(const glm::vec3& rot) { transform.rotation = rot; }
+        void SetRotation(const glm::vec3& rot) 
+        { 
+            transform.rotation = glm::quat(rot);
+        }
+        void SetRotation(const glm::quat& rot)
+        {
+            transform.rotation = rot;
+        }
         void SetScale(const glm::vec3& s) { transform.scale = s; }
 	};
 }
