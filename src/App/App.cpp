@@ -42,7 +42,7 @@ namespace CG
 		if (mainWindow == nullptr)
 			return false;
 		glfwMakeContextCurrent(mainWindow);
-		glfwSwapInterval(1); // Enable vsync
+		glfwSwapInterval(1); // 影格率將被限制在螢幕刷新率 (通常是 60/144Hz)
 
 		// Initialize GLEW
 		glewExperimental = GL_TRUE;
@@ -79,10 +79,18 @@ namespace CG
 		inspectorWindow = new InspectorWindow();
 		inspectorWindow->Initialize();
 
+		hierarchyWindow = new HierarchyWindow();
+		hierarchyWindow->Initialize();
+
+		sequencerWindow = new SequencerWindow();
+		sequencerWindow->Initialize();
+
 		mainScene = new MainScene();
 		mainScene->Initialize();
 
 		inspectorWindow->SetTargetScene(mainScene);
+		hierarchyWindow->SetTargetScene(mainScene);
+		sequencerWindow -> SetTargetScene(mainScene);
 		printf("Project Source Header Version: %s (%d)\n", IMGUI_VERSION, IMGUI_VERSION_NUM);
 		IMGUI_CHECKVERSION();
 		// Initialization done
@@ -126,8 +134,9 @@ namespace CG
 
 			// UpdateScreen 內部會記錄本幀的 Viewport 尺寸，供下一幀 Step 0 使用
 			viewportWindow->UpdateScreen(mainScene, sceneRenderer->getCurrentFramebuffer());
-
 			inspectorWindow->Display();
+			hierarchyWindow->Display();
+			sequencerWindow->Display();
 
 			ImGui::Render();
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

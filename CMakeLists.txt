@@ -10,22 +10,16 @@ file(GLOB_RECURSE SRC_FILES
 )
 
 # ─── Third-party Libraries (from include/) ──────────────────────
-# ImGui
-file(GLOB IMGUI_SRC
-    "${CMAKE_SOURCE_DIR}/include/imgui/*.cpp"
-    "${CMAKE_SOURCE_DIR}/include/imgui/backends/*.cpp"
-    "${CMAKE_SOURCE_DIR}/include/imgui/misc/cpp/*.cpp"
-)
-
 # GLAD
 file(GLOB GLAD_SRC
     "${CMAKE_SOURCE_DIR}/include/glad4.6/src/*.c"
+    "${CMAKE_SOURCE_DIR}/include/ImNeoSequencer/*.h"
+    "${CMAKE_SOURCE_DIR}/include/ImNeoSequencer/*.cpp"
 )
 
 # ─── Executable ─────────────────────────────────────────────────
 add_executable(${PROJECT_NAME}
     ${SRC_FILES}
-    ${IMGUI_SRC}
     ${GLAD_SRC}
 )
 
@@ -33,12 +27,7 @@ add_executable(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_SOURCE_DIR}/src"
     "${CMAKE_SOURCE_DIR}/include"
-    "${CMAKE_SOURCE_DIR}/include/imgui"
-    "${CMAKE_SOURCE_DIR}/include/imgui/backends"
-    "${CMAKE_SOURCE_DIR}/include/imgui/misc/cpp"
-    "${CMAKE_SOURCE_DIR}/include/imgui/misc/freetype"
     "${CMAKE_SOURCE_DIR}/include/glad4.6/include"
-    "${CMAKE_SOURCE_DIR}/include/imguizmo"
 )
 
 # ─── Link .lib Files ────────────────────────────────────────────

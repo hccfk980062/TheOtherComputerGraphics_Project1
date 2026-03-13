@@ -5,7 +5,7 @@
 namespace CG
 {
 	InspectorWindow::InspectorWindow()
-		: targetScene(nullptr), selectedObjectIndex(-1)
+		: targetScene(nullptr)
 	{
 	}
 
@@ -20,30 +20,27 @@ namespace CG
 
 	void InspectorWindow::Display()
 	{
-		ImGui::SetNextWindowSize(ImVec2(350, 700), ImGuiCond_Once);
-		ImGui::SetNextWindowPos(ImVec2(1500, 20), ImGuiCond_Once);
-
 		if (ImGui::Begin("Totally not Unity Inspector", nullptr))
 		{
 			if (targetScene)
 			{
 				ImGui::BeginTabBar("InspectorTabs");
 				{
+					/*
 					if (ImGui::BeginTabItem("Scene"))
 					{
 						DisplayScenePanel();
 						ImGui::EndTabItem();
 					}
-
-					if (ImGui::BeginTabItem("Camera"))
-					{
-						DisplayCameraPanel();
-						ImGui::EndTabItem();
-					}
-
+					*/
 					if (ImGui::BeginTabItem("Transform"))
 					{
 						DisplayTransformPanel();
+						ImGui::EndTabItem();
+					}
+					if (ImGui::BeginTabItem("Camera"))
+					{
+						DisplayCameraPanel();
 						ImGui::EndTabItem();
 					}
 				}
@@ -55,31 +52,6 @@ namespace CG
 			}
 		}
 		ImGui::End();
-	}
-
-	void InspectorWindow::DisplayScenePanel()
-	{
-		ImGui::Text("Scene Objects");
-		ImGui::Separator();
-
-		int objectCount = targetScene->GetObjectCount();
-
-		ImGui::PushID("ObjectList");
-		{
-			for (int i = 0; i < objectCount; ++i)
-			{
-				SceneObject* obj = targetScene->GetObjectByIndex(i);
-				if (obj && ImGui::Selectable(obj->name.c_str(), selectedObjectIndex == i))
-				{
-					selectedObjectIndex = i;
-				}
-			}
-		}
-		ImGui::PopID();
-
-		ImGui::Spacing();
-		//ImGui::TextDisabled(ImGuiHelperText_Default);
-		ImGui::Text("Selected Index: %d", selectedObjectIndex);
 	}
 
 	void InspectorWindow::DisplayCameraPanel()
@@ -116,13 +88,13 @@ namespace CG
 		ImGui::Text("Transform Properties");
 		ImGui::Separator();
 
-		if (selectedObjectIndex < 0)
+		if (targetScene->selectedObject == nullptr)
 		{
-			ImGui::TextColored(ImVec4(1, 1, 0, 1), "Select an object to edit its transform");
+			ImGui::TextColored(ImVec4(1, 1, 0, 1), "Select an object in Hierarchy Window to edit its transform");
 			return;
 		}
 
-		SceneObject* selectedObject = targetScene->GetObjectByIndex(selectedObjectIndex);
+		SceneObject* selectedObject = targetScene->selectedObject;
 		if (!selectedObject)
 		{
 			ImGui::TextColored(ImVec4(1, 0, 0, 1), "Invalid object");
@@ -131,13 +103,22 @@ namespace CG
 
 		// Directly edit object transform
 		ImGui::TextDisabled("Position");
-		ImGui::DragFloat3("##Position", glm::value_ptr(selectedObject->transform.position), 0.1f);
+		if (ImGui::DragFloat3("##Position", glm::value_ptr(selectedObject->transform.position), 0.1f))
+		{
+			selectedObject->MarkDirty();
+		}
 
 		ImGui::TextDisabled("Rotation (Euler Angles)");
-		ImGui::DragFloat3("##Rotation", glm::value_ptr(selectedObject->transform.rotation), 1.0f, -360.0f, 360.0f);
+		if(ImGui::InputFloat3("##Rotation", glm::value_ptr(selectedObject->transform.rotation)))
+		{
+			selectedObject->MarkDirty();
+		}
 
 		ImGui::TextDisabled("Scale");
-		ImGui::DragFloat3("##Scale", glm::value_ptr(selectedObject->transform.scale), 0.1f, 0.01f, 100.0f);
+		if(ImGui::DragFloat3("##Scale", glm::value_ptr(selectedObject->transform.scale), 0.1f, 0.01f, 100.0f))
+		{
+			selectedObject->MarkDirty();
+		}
 
 		ImGui::Spacing();
 		if (ImGui::Button("Reset Transform", ImVec2(-1, 0)))
@@ -145,12 +126,13 @@ namespace CG
 			selectedObject->transform.position = glm::vec3(0.0f);
 			selectedObject->transform.rotation = glm::vec3(0.0f);
 			selectedObject->transform.scale = glm::vec3(1.0f);
+			selectedObject->MarkDirty();
 		}
 
 		// Display transformation matrix preview
 		ImGui::Spacing();
-		ImGui::TextDisabled("Model Matrix (Preview)");
-		glm::mat4 model = selectedObject->transform.GetModelMatrix();
+		ImGui::TextDisabled("Local Model Matrix (Preview)");
+		glm::mat4 model = selectedObject->transform.GetLocalMatrix();
 
 		ImGui::Text("Row 0: (%.2f, %.2f, %.2f, %.2f)", model[0][0], model[0][1], model[0][2], model[0][3]);
 		ImGui::Text("Row 1: (%.2f, %.2f, %.2f, %.2f)", model[1][0], model[1][1], model[1][2], model[1][3]);

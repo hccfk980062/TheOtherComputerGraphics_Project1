@@ -1,7 +1,4 @@
-#include<imgui.h>
-#include<ImGuizmo.h>
-
-#include<Window/ViewportWindow/ViewportWindow.h>
+#include "Window/ViewportWindow/ViewportWindow.h"
 
 namespace CG
 {
@@ -40,6 +37,7 @@ namespace CG
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::Begin("Viewport (ImGuizmo NMSL Edition)", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		ImGui::PopStyleVar();
+
 
 		// ── 記錄本幀的 Viewport 尺寸，供下一幀 SyncFramebufferSize() 使用 ──────
 		ImVec2 viewportSize = ImGui::GetContentRegionAvail();
@@ -81,7 +79,70 @@ namespace CG
 				scene->freeViewCamera.ProcessKeyboard(pressedKey, 0.05);
 			}
 		}
-		
+
+		{
+			const float  PAD = 8.0f;   // 距邊框距離
+			const float  BTN_WIDTH = 120.0f;
+			const float  BTN_HEIGHT = 28.0f;
+			const ImVec4 COL_ACTIVE = ImVec4(0.26f, 0.59f, 0.98f, 1.00f); // 藍色：選中
+			const ImVec4 COL_NORMAL = ImVec4(0.20f, 0.20f, 0.20f, 0.75f); // 深灰：未選
+
+			// 把 cursor 移到 viewport 內容區左上角 + padding
+			ImGui::SetCursorScreenPos(ImVec2(imageScreenPos.x + PAD,
+				imageScreenPos.y + PAD));
+
+			// 讓三顆按鈕橫排緊靠
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 0.0f));
+			// 圓角按鈕
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
+
+			struct OperationBtn { const char* label; ImGuizmo::OPERATION op; };
+			constexpr OperationBtn BUTTONS[] = {
+				{ "[T]ranslate", ImGuizmo::TRANSLATE },
+				{ "[R]otate", ImGuizmo::ROTATE    },
+				{ "[S]cale", ImGuizmo::SCALE     },
+			};
+
+			for (const auto& btn : BUTTONS)
+			{
+				bool isActive = (objectTransformOperation == btn.op);
+				ImGui::PushStyleColor(ImGuiCol_Button,
+					isActive ? COL_ACTIVE : COL_NORMAL);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+					isActive ? COL_ACTIVE : ImVec4(0.35f, 0.35f, 0.35f, 0.90f));
+
+				if (ImGui::Button(btn.label, ImVec2(BTN_WIDTH, BTN_HEIGHT)))
+					objectTransformOperation = btn.op;
+
+				ImGui::PopStyleColor(2);
+				ImGui::SameLine();
+			}
+
+
+
+			struct ModeBtn { const char* label; ImGuizmo::MODE mode; };
+			constexpr ModeBtn MODEBUTTONS[] = {
+				{ "[L]ocal", ImGuizmo::LOCAL },
+				{ "[W]orld", ImGuizmo::WORLD    },
+			};
+
+			for (const auto& btn : MODEBUTTONS)
+			{
+				bool isActive = (objectTransformMode == btn.mode);
+				ImGui::PushStyleColor(ImGuiCol_Button,
+					isActive ? COL_ACTIVE : COL_NORMAL);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+					isActive ? COL_ACTIVE : ImVec4(0.35f, 0.35f, 0.35f, 0.90f));
+
+				if (ImGui::Button(btn.label, ImVec2(BTN_WIDTH, BTN_HEIGHT)))
+					objectTransformMode = btn.mode;
+
+				ImGui::PopStyleColor(2);
+				ImGui::SameLine();
+			}
+			ImGui::PopStyleVar(2);   // ItemSpacing, FrameRounding
+		}
+
 		// ── ImGuizmo overlay ───────────────────────────────────────────────────
 		ImGuizmo::SetOrthographic(false);
 		ImGuizmo::SetDrawlist();  // 畫到當前視窗的 drawlist
@@ -98,40 +159,48 @@ namespace CG
 		memcpy(viewFlat, glm::value_ptr(viewMatrix), sizeof(viewFlat));
 		memcpy(projFlat, glm::value_ptr(projMatrix), sizeof(projFlat));
 		memcpy(identityFlat, glm::value_ptr(identityMatrix), sizeof(identityFlat));
-
-		if (!scene->sceneObjects.empty())
+		
+		if (!scene->rootObject.children.empty() && scene->selectedObject != nullptr)
 		{
-			glm::mat4 modelMatrix = scene->sceneObjects[0].transform.GetModelMatrix();
-			float modelFlat[16];
-			memcpy(modelFlat, glm::value_ptr(modelMatrix), sizeof(modelFlat));
-			ImGuiIO& io = ImGui::GetIO();
-			std::cout
-				<< "IsOver=" << ImGuizmo::IsOver()
-				<< " aspect=" << (viewportSize.x / viewportSize.y)
-				<< " WantCapture=" << io.WantCaptureMouse
-				<< " MouseDown=" << io.MouseDown[0]
-				<< " MousePos=(" << io.MousePos.x << "," << io.MousePos.y << ")"
-				<< " Rect=(" << imageScreenPos.x << "," << imageScreenPos.y
-				<< " " << viewportSize.x << "x" << viewportSize.y << ")"
-				<< std::endl;
-
-			ImGuizmo::Manipulate(viewFlat, projFlat,ImGuizmo::TRANSLATE,ImGuizmo::LOCAL,modelFlat);
-			// ── [Bug Fix #3] Gizmo 操作結果寫回 Transform ─────────────────────
-			// 原本的 memcpy 被 comment 掉，且目標是 local variable，完全沒有作用
+			glm::mat4 modelMatrix = scene->selectedObject->GetWorldMatrix();
+			ImGuizmo::Manipulate(viewFlat, projFlat, objectTransformOperation, objectTransformMode, glm::value_ptr(modelMatrix));
+			// ──  Gizmo 操作結果寫回 Transform ─────────────────────
 			if (ImGuizmo::IsUsing())
 			{
-				float t[3], r[3], s[3];
-				ImGuizmo::DecomposeMatrixToComponents(modelFlat, t, r, s);
-
-				scene->sceneObjects[0].transform.position = glm::vec3(t[0], t[1], t[2]);
-
-				// 若 Transform 有 rotation / scale 欄位，一起更新：
-				// scene->sceneObjects[0].transform.rotation = glm::vec3(r[0], r[1], r[2]);
-				// scene->sceneObjects[0].transform.scale    = glm::vec3(s[0], s[1], s[2]);
+				if(scene->selectedObject->parent != nullptr)
+				{
+					glm::mat4 parentWorld = scene->selectedObject->parent->GetWorldMatrix();
+					glm::mat4 newLocalMatrix = glm::inverse(parentWorld) * modelMatrix;
+					ApplyMatrixToTransform(scene->selectedObject->transform, newLocalMatrix);
+				}
+				else
+				{
+					ApplyMatrixToTransform(scene->selectedObject->transform, modelMatrix);
+				}
+				scene->selectedObject->MarkDirty();
 			}
 		}
 		ImGui::End();
 	}
+
+	void ViewportWindow::ApplyMatrixToTransform(Transform& transform, const glm::mat4& matrix)
+	{
+		float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+
+		// ImGuizmo 內建的矩陣分解，比 glm::decompose 更穩定
+		ImGuizmo::DecomposeMatrixToComponents(
+			glm::value_ptr(matrix),
+			matrixTranslation,
+			matrixRotation,   // 回傳 Euler angles（degrees）
+			matrixScale
+		);
+
+		glm::quat rotationQuat = glm::quat(glm::radians(glm::vec3(matrixRotation[0], matrixRotation[1], matrixRotation[2])));
+		transform.position = { matrixTranslation[0], matrixTranslation[1], matrixTranslation[2] };
+		transform.rotation = rotationQuat;
+		transform.scale = { matrixScale[0],        matrixScale[1],       matrixScale[2] };
+	}
+
 	/*
 	void ViewportWindow::OnResize(int width, int height)
 	{
