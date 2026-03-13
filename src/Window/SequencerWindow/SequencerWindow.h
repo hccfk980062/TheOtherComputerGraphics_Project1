@@ -1,97 +1,69 @@
 #pragma once
-#pragma once
-#pragma once
 
-#include <ImSequencer.h>
+#include<ImGui.h>
+#include<imgui_internal.h>
+
+#include<ImNeoSequencer/imgui_neo_sequencer.h>
+#include<ImNeoSequencer/imgui_neo_internal.h>
 
 #include "Scene/MainScene.h"
 
 namespace CG
 {
-    struct AnimationSequencer : public ImSequencer::SequenceInterface
-    {
-        // --- Required state ---
-        int mFrameMin = 0;
-        int mFrameMax = 120;
-        struct KeyframeData
-        {
-            int startFrame;
-            int endFrame;
-            glm::vec3 startPosition;
-            glm::quat startRotation;
-            glm::vec3 startScale;
-            glm::vec3 endPosition;
-            glm::quat endRotation;
-            glm::vec3 endScale;
-        };
-        struct KeyframeTrack
-        {
-            std::string label;
-            unsigned int color;                          // RGBA packed
+	struct KeyframeData
+	{
+		int frame;
+		glm::vec3 position;
+		glm::quat rotation;
+		glm::vec3 scale;
+	};
+	struct AnimationTrack
+	{
+		std::string trackName;
+		std::vector<KeyframeData> keyframes; //可以不按frame順序排列
+		SceneObject* linkedObject = nullptr;
 
-            SceneObject* LinkedObject;
-            std::vector<KeyframeData> keyframes; // {frameStart, frameEnd}
-        };
+		bool open = true;
 
-        std::vector<KeyframeTrack> tracks;
 
-        // --- Interface overrides ---
+		void SortKeyframeDatas()
+		{
+			std::sort(keyframes.begin(), keyframes.end(), [](const KeyframeData& a, const KeyframeData& b)
+				{
+					return a.frame < b.frame;
+				});
+		}
 
-        int GetFrameMin() const override { return mFrameMin; }
-        int GetFrameMax() const override { return mFrameMax; }
-        int GetItemCount() const override { return (int)tracks.size(); }
+		//:                                                   previousFrameData     nextFrameData
+		//> frame 剛好在某關鍵幀上:      前一關鍵幀(或自身)       該關鍵幀
+		//> frame 在所有關鍵幀之前:      第一個關鍵幀(夾緊)       第一個關鍵幀
+		//> frame 在所有關鍵幀之後:      最後一個關鍵幀              最後一個關鍵幀(夾緊)
+		//> 只有一個關鍵幀:                      該關鍵幀                          該關鍵幀
+		void GetClampedKeyframes(int frame, KeyframeData &previousFrameData, KeyframeData &nextFrameData)
+		{
+			if (keyframes.empty()) return;
 
-        int GetItemTypeCount() const override { return 1; }
-        const char* GetItemTypeName(int i) const override { return "Keyframe"; }
-        const char* GetItemLabel(int i) const override { return tracks[i].label.c_str(); }
+			// 找第一個 frame >= 目標幀 的迭代器
+			auto nextIt = std::lower_bound(keyframes.begin(), keyframes.end(), frame, [](const KeyframeData& kf, int f) 
+			{
+				return kf.frame < f;
+			});
 
-        void Get(int index, int** start, int** end, int* type, unsigned int* color) override 
-        {
-            auto& t = tracks[index];
-            // ImSequencer calls Get() for each keyframe segment — you need
-            // to track which segment is being queried via an internal iterator
-            // or index offset. A common pattern uses a flat list:
-            if (color) *color = t.color;
-            if (type)  *type = 0;
-            // start/end point into your data
-            if (start) *start = &t.keyframes[0].startFrame;
-            if (end)   *end = &t.keyframes[0].endFrame;
-        }
+			// --- 決定 nextFrameData ---
+			if (nextIt == keyframes.end())
+				nextIt = std::prev(keyframes.end()); // 超過最後一幀，夾緊到末端
 
-        void Add(int type) override
-        {
-            KeyframeTrack tra = { "Track " + std::to_string(tracks.size()), 0xFF3080FF };
-            tra.keyframes.push_back(KeyframeData{0, 60});
-            tracks.push_back(tra);
-        }
+			// --- 決定 previousFrameData ---
+			auto prevIt = (nextIt == keyframes.begin())
+				? keyframes.begin()              // 在第一幀之前，夾緊到開頭
+				: std::prev(nextIt);             // 正常往前一格
 
-        void Del(int index) override
-        {
-            tracks.erase(tracks.begin() + index);
-        }
+			previousFrameData = *prevIt;
+			nextFrameData = *nextIt;
+		}
+		
+	};
 
-        void Duplicate(int index) override
-        {
-            tracks.push_back(tracks[index]);
-        }
-
-        size_t GetCustomHeight(int index) override { return 0; }
-
-        void DoubleClick(int index) override
-        {
-            // Optional: open a property panel for this track
-        }
-
-        void CustomDraw(int index, ImDrawList* draw_list, const ImRect& rc, const ImRect& legendRect,
-            const ImRect& clippingRect, const ImRect& legendClippingRect) override
-        {
-        }
-
-        void CustomDrawCompact(int index, ImDrawList* draw_list,
-            const ImRect& rc, const ImRect& clippingRect) override
-        {
-        }
-    };
 
 	class SequencerWindow
 	{
@@ -105,27 +77,22 @@ namespace CG
 		void SetTargetScene(MainScene* scene)
 		{
 			targetScene = scene;
-            animationSequencer.tracks[0].LinkedObject = scene->rootObject.children[0].get();
-
-
-            animationSequencer.tracks[0].keyframes[0].startPosition = glm::vec3(0.0f, 0.0f, 0.0f);
-            animationSequencer.tracks[0].keyframes[0].endPosition = glm::vec3(60.0f, 0.0f, 0.0f);
-
-            animationSequencer.tracks[0].keyframes[0].startRotation = glm::quat(glm::vec3(0.0f));
-            animationSequencer.tracks[0].keyframes[0].endRotation = glm::quat(glm::vec3(0.0f, glm::radians(90.0f), 0.0f));
+			animationTracks[0].linkedObject = scene->rootObject.children[0].get();
 		}
 
 	private:
 		MainScene* targetScene = nullptr;
+		std::vector<AnimationTrack> animationTracks; //目前應該只有一個 (控制某個物件的變換用的Track)
 
-        AnimationSequencer animationSequencer;
-        int currentFrame = 0;
-        bool expanded = true;
-        int selectedEntry = -1;
-        int firstFrame = 0;
+		int currentFrame = 0;
+		int startFrame = 0;
+		int endFrame = 120;
+		bool isPlaying = false;
 
-        bool playing = false;
-        double lastTime = 0.0;
-        double timeAccumulated = 0;
+		double lastTime = 0;
+		double timeAccumulated = 0;
+
+
+		bool transformOpen = true;
 	};
 }

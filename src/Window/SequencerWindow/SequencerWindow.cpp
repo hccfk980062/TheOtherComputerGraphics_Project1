@@ -1,5 +1,4 @@
 #include "SequencerWindow.h"
-#include<imgui.h>
 namespace CG
 {
     SequencerWindow::SequencerWindow() : targetScene(nullptr)
@@ -12,7 +11,13 @@ namespace CG
 
     auto SequencerWindow::Initialize() -> bool
     {
-        animationSequencer.Add(0);
+        animationTracks.push_back(AnimationTrack());
+        animationTracks[0].trackName = "Trasform";
+        animationTracks[0].keyframes.push_back(KeyframeData{ 0, glm::vec3(0.0f) });
+        animationTracks[0].keyframes.push_back(KeyframeData{ 30, glm::vec3(10.0f) });
+        animationTracks[0].keyframes.push_back(KeyframeData{ 60, glm::vec3(00.0f) });
+        animationTracks[0].keyframes.push_back(KeyframeData{ 90, glm::vec3(-10.0f) });
+        animationTracks[0].keyframes.push_back(KeyframeData{ 120, glm::vec3(0.0f) });
         return true;
     }
 
@@ -23,19 +28,56 @@ namespace CG
         {
             if (targetScene)
             {
-                int sequencerFlags =
-                    ImSequencer::SEQUENCER_EDIT_STARTEND |  // drag segment edges
-                    ImSequencer::SEQUENCER_ADD |  // "+" button
-                    ImSequencer::SEQUENCER_DEL |  // delete button
-                    ImSequencer::SEQUENCER_COPYPASTE |  // Ctrl+C / Ctrl+V
-                    ImSequencer::SEQUENCER_CHANGE_FRAME;      // click to seek
+                // ── Top bar: transport controls ──────────────────────────────
+                if (ImGui::Button("|<")) currentFrame = startFrame;
+                ImGui::SameLine();
+                if (ImGui::Button("<"))  currentFrame = std::max(startFrame, currentFrame - 1);
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(80.f);
+                ImGui::DragInt("Frame", &currentFrame, 1, startFrame, endFrame);
+                ImGui::SameLine();
+                if (ImGui::Button(">"))  currentFrame = std::min(endFrame, currentFrame + 1);
+                ImGui::SameLine();
+                if (ImGui::Button(">|")) currentFrame = endFrame;
+                ImGui::SameLine();
+                if (ImGui::Button("Play / Pause"))
+                {
+                    isPlaying = !isPlaying;
+                    lastTime = ImGui::GetTime();
+                    animationTracks[0].SortKeyframeDatas();
+                }
+                ImGui::Separator();
 
-                if (ImGui::Button(playing ? "Pause" : "Play"))
-                    playing = !playing, lastTime = ImGui::GetTime();
+                // ── Sequencer widget ─────────────────────────────────────────
+                // BeginNeoSequencer returns false if the widget is collapsed/clipped
+                if (ImGui::BeginNeoSequencer("Sequencer", &currentFrame, &startFrame, &endFrame, {0,0}, 
+                    ImGuiNeoSequencerFlags_EnableSelection |
+                    ImGuiNeoSequencerFlags_Selection_EnableDragging
+                    ))
+                {
+                    if (ImGui::BeginNeoGroup("Transform", &transformOpen)) 
+                    {
+                        if (ImGui::BeginNeoTimelineEx("Position"))
+                        {
+                            for (auto&& v : animationTracks[0].keyframes)
+                            {
+                                ImGui::NeoKeyframe(&v.frame);
+                                /*
+                                if (ImGui::IsNeoKeyframeSelected())
+                                {
+                                    std::cout << "Selected keyframe: " << v.frame << " with position: " << v.position.x << std::endl;
+                                }
+                                */
+                            }
+                            ImGui::EndNeoTimeLine();
+                        }
+                        ImGui::EndNeoGroup();
+                    }
+                    ImGui::EndNeoSequencer();
+                }
 
-                ImSequencer::Sequencer(&animationSequencer, &currentFrame, &expanded,&selectedEntry, &firstFrame, sequencerFlags);
 
-                if (playing)
+                if (isPlaying)
                 {
                     double now = ImGui::GetTime(); //Second
                     timeAccumulated += now - lastTime;
@@ -44,17 +86,27 @@ namespace CG
                     if (timeAccumulated >= 0.01667) // 60 fps
                     {
                         timeAccumulated = 0;
-                        currentFrame += 1.0;
-                        if (currentFrame > animationSequencer.mFrameMax) currentFrame = animationSequencer.mFrameMin;
+                        currentFrame += 1;
+                        if (currentFrame > endFrame) currentFrame = startFrame;
 
-                        float timeCalcuated = (float)(currentFrame - animationSequencer.tracks[0].keyframes[0].startFrame) / (animationSequencer.tracks[0].keyframes[0].endFrame - animationSequencer.tracks[0].keyframes[0].startFrame);
 
-                        float t = glm::clamp(timeCalcuated, 0.0f, 1.0f);
-                        glm::vec3 currentPosition = (1 - t) * animationSequencer.tracks[0].keyframes[0].startPosition + t * animationSequencer.tracks[0].keyframes[0].endPosition;
-                        glm::quat currentRotation = glm::slerp(animationSequencer.tracks[0].keyframes[0].startRotation, animationSequencer.tracks[0].keyframes[0].endRotation, t);
-                        glm::vec3 currentScale = (1 - t) * animationSequencer.tracks[0].keyframes[0].startScale + t * animationSequencer.tracks[0].keyframes[0].endScale;
-                    
-                        animationSequencer.tracks[0].LinkedObject->SetRotation(currentRotation);
+                        KeyframeData previousFrameData;
+                        KeyframeData nextFrameData;
+
+                        animationTracks[0].GetClampedKeyframes(currentFrame, previousFrameData, nextFrameData);
+
+                        float t = 0.0f;
+                        int range = nextFrameData.frame - previousFrameData.frame;
+                        if (range > 0)
+                            t = float(currentFrame - previousFrameData.frame) / float(range);
+
+                        t = glm::clamp(t, 0.0f, 1.0f);
+
+                        glm::vec3 pos = glm::mix(previousFrameData.position, nextFrameData.position, t);
+                        glm::quat rot = glm::slerp(previousFrameData.rotation, nextFrameData.rotation, t);
+                        glm::vec3 scl = glm::mix(previousFrameData.scale, nextFrameData.scale, t);
+
+                        animationTracks[0].linkedObject->SetPosition(pos);
                     }
                 }
             }
