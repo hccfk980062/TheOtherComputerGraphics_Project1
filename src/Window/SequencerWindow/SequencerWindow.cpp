@@ -33,14 +33,7 @@ namespace CG
                 if (ImGui::Button(playing ? "Pause" : "Play"))
                     playing = !playing, lastTime = ImGui::GetTime();
 
-                ImSequencer::Sequencer(
-                    &animationSequencer,
-                    &currentFrame,   // playhead position (read/write)
-                    &expanded,       // expand/collapse all tracks
-                    &selectedEntry,  // which track row is selected
-                    &firstFrame,     // horizontal scroll offset (first visible frame)
-                    sequencerFlags
-                );
+                ImSequencer::Sequencer(&animationSequencer, &currentFrame, &expanded,&selectedEntry, &firstFrame, sequencerFlags);
 
                 if (playing)
                 {
@@ -52,8 +45,16 @@ namespace CG
                     {
                         timeAccumulated = 0;
                         currentFrame += 1.0;
-                        if (currentFrame > animationSequencer.mFrameMax)
-                            currentFrame = animationSequencer.mFrameMin;
+                        if (currentFrame > animationSequencer.mFrameMax) currentFrame = animationSequencer.mFrameMin;
+
+                        float timeCalcuated = (float)(currentFrame - animationSequencer.tracks[0].keyframes[0].startFrame) / (animationSequencer.tracks[0].keyframes[0].endFrame - animationSequencer.tracks[0].keyframes[0].startFrame);
+
+                        float t = glm::clamp(timeCalcuated, 0.0f, 1.0f);
+                        glm::vec3 currentPosition = (1 - t) * animationSequencer.tracks[0].keyframes[0].startPosition + t * animationSequencer.tracks[0].keyframes[0].endPosition;
+                        glm::quat currentRotation = glm::slerp(animationSequencer.tracks[0].keyframes[0].startRotation, animationSequencer.tracks[0].keyframes[0].endRotation, t);
+                        glm::vec3 currentScale = (1 - t) * animationSequencer.tracks[0].keyframes[0].startScale + t * animationSequencer.tracks[0].keyframes[0].endScale;
+                    
+                        animationSequencer.tracks[0].LinkedObject->SetRotation(currentRotation);
                     }
                 }
             }

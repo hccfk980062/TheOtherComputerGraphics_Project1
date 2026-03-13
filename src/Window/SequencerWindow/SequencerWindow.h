@@ -15,11 +15,14 @@ namespace CG
         int mFrameMax = 120;
         struct KeyframeData
         {
-            int recordedStartFrame;
-            int recordedEndFrame;
-            glm::vec3 recordedPosition;
-            glm::vec3 recordedRotation;
-            glm::vec3 recordedScale;
+            int startFrame;
+            int endFrame;
+            glm::vec3 startPosition;
+            glm::quat startRotation;
+            glm::vec3 startScale;
+            glm::vec3 endPosition;
+            glm::quat endRotation;
+            glm::vec3 endScale;
         };
         struct KeyframeTrack
         {
@@ -51,14 +54,14 @@ namespace CG
             if (color) *color = t.color;
             if (type)  *type = 0;
             // start/end point into your data
-            if (start) *start = &t.keyframes[0].recordedStartFrame;
-            if (end)   *end = &t.keyframes[0].recordedEndFrame;
+            if (start) *start = &t.keyframes[0].startFrame;
+            if (end)   *end = &t.keyframes[0].endFrame;
         }
 
         void Add(int type) override
         {
             KeyframeTrack tra = { "Track " + std::to_string(tracks.size()), 0xFF3080FF };
-            tra.keyframes.push_back(KeyframeData{0, 10});
+            tra.keyframes.push_back(KeyframeData{0, 60});
             tracks.push_back(tra);
         }
 
@@ -102,6 +105,14 @@ namespace CG
 		void SetTargetScene(MainScene* scene)
 		{
 			targetScene = scene;
+            animationSequencer.tracks[0].LinkedObject = scene->rootObject.children[0].get();
+
+
+            animationSequencer.tracks[0].keyframes[0].startPosition = glm::vec3(0.0f, 0.0f, 0.0f);
+            animationSequencer.tracks[0].keyframes[0].endPosition = glm::vec3(60.0f, 0.0f, 0.0f);
+
+            animationSequencer.tracks[0].keyframes[0].startRotation = glm::quat(glm::vec3(0.0f));
+            animationSequencer.tracks[0].keyframes[0].endRotation = glm::quat(glm::vec3(0.0f, glm::radians(90.0f), 0.0f));
 		}
 
 	private:

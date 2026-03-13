@@ -62,14 +62,20 @@ namespace CG
                 child->MarkDirty();
         }
 
-        void SetPosition(const glm::vec3& pos) { transform.position = pos; }
+        void SetPosition(const glm::vec3& pos) 
+        { 
+            transform.position = pos; 
+            this->MarkDirty();
+        }
         void SetRotation(const glm::vec3& rot) 
         { 
             transform.rotation = glm::quat(rot);
+            this->MarkDirty();
         }
         void SetRotation(const glm::quat& rot)
         {
             transform.rotation = rot;
+            this->MarkDirty();
         }
         void SetScale(const glm::vec3& s) { transform.scale = s; }
 	};
