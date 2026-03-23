@@ -119,18 +119,9 @@ namespace CG
         std::cout << "Not Implemented yet";
     }
 
-    void HierarchyWindow::ReparentObject(SceneObject* obj, SceneObject* newParent) 
+    void HierarchyWindow::ReparentObject(SceneObject* obj, SceneObject* newParent)
     {
-        SceneObject* oldParent = obj->parent ? obj->parent : &targetScene->rootObject;
-        auto& siblings = oldParent->children;
-        auto it = std::find_if(siblings.begin(), siblings.end(),
-            [obj](const auto& c) { return c.get() == obj; });
-        if (it == siblings.end()) return;
-
-        auto node = std::move(*it);
-        siblings.erase(it);
-        node->parent = newParent;
-        newParent->children.push_back(std::move(node));
+        targetScene->ReparentObject(obj, newParent);
     }
     bool HierarchyWindow::IsAncestor(SceneObject* potentialAncestor, SceneObject* node) {
         SceneObject* cur = node->parent;

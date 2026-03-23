@@ -32,21 +32,41 @@ namespace CG
 		vector<Mesh>    meshes;
 		string directory;
 		bool gammaCorrection;
-
+		bool useTextures;
 		// constructor, expects a filepath to a 3D model.
-		Model(string const& path, bool gamma = false) : gammaCorrection(gamma)
+		Model(string const& path, bool gamma = false, bool useTextures = true): gammaCorrection(gamma), useTextures(useTextures)
 		{
+			defaultTextureID = createDefaultTexture();  // ← 新增
 			loadModel(path);
 		}
 
 		// draws the model, and thus all its meshes
 		void Draw(Shader& shader)
 		{
-			for (unsigned int i = 0; i < meshes.size(); i++)
-				meshes[i].Draw(shader);
+			for (auto& mesh : meshes)
+				mesh.Draw(shader, useTextures, defaultTextureID);
 		}
 
 	private:
+		unsigned int defaultTextureID = 0;
+		// 產生一張 1x1 的純白貼圖作為預設值
+		unsigned int createDefaultTexture()
+		{
+			unsigned int texID;
+			glGenTextures(1, &texID);
+			glBindTexture(GL_TEXTURE_2D, texID);
+
+			unsigned char whitePixel[4] = { 255, 255, 255, 255 };
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, whitePixel);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+			return texID;
+		}
+
 		// loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
 		void loadModel(string const& path)
 		{
@@ -92,6 +112,7 @@ namespace CG
 			vector<Vertex> vertices;
 			vector<unsigned int> indices;
 			vector<MeshTexture> textures;
+			Material             material;
 
 			// walk through each of the mesh's vertices
 			for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -145,7 +166,7 @@ namespace CG
 					indices.push_back(face.mIndices[j]);
 			}
 			// process materials
-			aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+			aiMaterial* mat = scene->mMaterials[mesh->mMaterialIndex];
 			// we assume a convention for sampler names in the shaders. Each diffuse texture should be named
 			// as 'texture_diffuseN' where N is a sequential number ranging from 1 to MAX_SAMPLER_NUMBER. 
 			// Same applies to other texture as the following list summarizes:
@@ -153,21 +174,48 @@ namespace CG
 			// specular: texture_specularN
 			// normal: texture_normalN
 
-			// 1. diffuse maps
-			vector<MeshTexture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+			// ── 讀取材質顏色屬性（來自 .mtl）──────────────────────
+			aiColor3D color;
+
+			if (mat->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS)
+				material.ambient = glm::vec3(color.r, color.g, color.b);
+
+			if (mat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
+				material.diffuse = glm::vec3(color.r, color.g, color.b);
+
+			if (mat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS)
+				material.specular = glm::vec3(color.r, color.g, color.b);
+
+			float shininess = 0.0f;
+			if (mat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS)
+				material.shininess = shininess;
+
+			float opacity = 1.0f;
+			if (mat->Get(AI_MATKEY_OPACITY, opacity) == AI_SUCCESS)
+				material.opacity = opacity;
+
+			// ── 讀取 Texture（修正 type 對應）──────────────────────
+			// 1. Diffuse map  → map_Kd
+			auto diffuseMaps = loadMaterialTextures(mat, aiTextureType_DIFFUSE, "texture_diffuse");
 			textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-			// 2. specular maps
-			vector<MeshTexture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
+
+			// 2. Specular map → map_Ks
+			auto specularMaps = loadMaterialTextures(mat, aiTextureType_SPECULAR, "texture_specular");
 			textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
-			// 3. normal maps
-			std::vector<MeshTexture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
+
+			// 3. Normal map   → map_bump / bump（修正：原本用 HEIGHT 是錯的）
+			auto normalMaps = loadMaterialTextures(mat, aiTextureType_NORMALS, "texture_normal");
 			textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
-			// 4. height maps
-			std::vector<MeshTexture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
+
+			// 4. Height map   → disp（修正：原本用 AMBIENT 是錯的）
+			auto heightMaps = loadMaterialTextures(mat, aiTextureType_DISPLACEMENT, "texture_height");
 			textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
-			// return a mesh object created from the extracted mesh data
-			return Mesh(vertices, indices, textures);
+			// 5. Emissive map → map_Ke（.mtl 擴充）
+			auto emissiveMaps = loadMaterialTextures(mat, aiTextureType_EMISSIVE, "texture_emissive");
+			textures.insert(textures.end(), emissiveMaps.begin(), emissiveMaps.end());
+
+			return Mesh(vertices, indices, textures, material);  // ← 傳入 material
 		}
 
 		// checks all material textures of a given type and loads the textures if they're not loaded yet.

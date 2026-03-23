@@ -80,7 +80,7 @@ public:
 	}
 
 	// processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
-	void ProcessKeyboard(std::array<bool, 4> vec, float deltaTime)
+	void ProcessKeyboard(std::array<bool, 6> vec, float deltaTime)
 	{
 		float velocity = MovementSpeed * deltaTime;
 		if (vec[0] == true)
@@ -91,6 +91,10 @@ public:
 			Position -= Right * velocity;
 		if (vec[3] == true)
 			Position += Right * velocity;
+		if (vec[4] == true)
+			Position -= WorldUp * velocity;
+		if (vec[5] == true)
+			Position += WorldUp * velocity;
 
 		updateCameraVectors();
 	}

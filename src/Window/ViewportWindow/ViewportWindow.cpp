@@ -70,16 +70,19 @@ namespace CG
 				if (dx != 0.0f || dy != 0.0f)
 					scene->freeViewCamera.ProcessMouseMovement(dx, dy);
 
-				std::array<bool, 4> pressedKey = {
+				std::array<bool, 6> pressedKey = {
 					ImGui::IsKeyDown(ImGuiKey_W),
 					ImGui::IsKeyDown(ImGuiKey_S),
 					ImGui::IsKeyDown(ImGuiKey_A),
-					ImGui::IsKeyDown(ImGuiKey_D)
+					ImGui::IsKeyDown(ImGuiKey_D),
+					ImGui::IsKeyDown(ImGuiKey_Q),
+					ImGui::IsKeyDown(ImGuiKey_E)
 				};
 				scene->freeViewCamera.ProcessKeyboard(pressedKey, 0.05);
 			}
 		}
 
+		//Over-Window Buttons (ImGuizmo mode setting)
 		{
 			const float  PAD = 8.0f;   // 距邊框距離
 			const float  BTN_WIDTH = 120.0f;
@@ -143,11 +146,10 @@ namespace CG
 			ImGui::PopStyleVar(2);   // ItemSpacing, FrameRounding
 		}
 
-		// ── ImGuizmo overlay ───────────────────────────────────────────────────
+		// ImGuizmo overlay
 		ImGuizmo::SetOrthographic(false);
 		ImGuizmo::SetDrawlist();  // 畫到當前視窗的 drawlist
 
-		// [Bug Fix #2] 使用 imageScreenPos（content 起點）而非 GetWindowPos()
 		ImGuizmo::SetRect(imageScreenPos.x, imageScreenPos.y, viewportSize.x, viewportSize.y);
 
 		glm::mat4 viewMatrix = scene->freeViewCamera.GetViewMatrix();
@@ -164,7 +166,7 @@ namespace CG
 		{
 			glm::mat4 modelMatrix = scene->selectedObject->GetWorldMatrix();
 			ImGuizmo::Manipulate(viewFlat, projFlat, objectTransformOperation, objectTransformMode, glm::value_ptr(modelMatrix));
-			// ──  Gizmo 操作結果寫回 Transform ─────────────────────
+			// Gizmo 操作結果寫回 Transform
 			if (ImGuizmo::IsUsing())
 			{
 				if(scene->selectedObject->parent != nullptr)

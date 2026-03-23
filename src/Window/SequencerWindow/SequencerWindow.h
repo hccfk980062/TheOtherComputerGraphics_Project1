@@ -6,21 +6,28 @@
 #include<ImNeoSequencer/imgui_neo_sequencer.h>
 #include<ImNeoSequencer/imgui_neo_internal.h>
 
+#include<glm/gtc/type_ptr.hpp>
+
 #include "Scene/MainScene.h"
 
 namespace CG
 {
+	struct AnimationTrack;
+
+
 	struct KeyframeData
 	{
 		int frame;
 		glm::vec3 position;
 		glm::quat rotation;
 		glm::vec3 scale;
+
+		AnimationTrack* sourceTrack;
 	};
 	struct AnimationTrack
 	{
 		std::string trackName;
-		std::vector<KeyframeData> keyframes; //可以不按frame順序排列
+		std::vector<KeyframeData> keyframes;
 		SceneObject* linkedObject = nullptr;
 
 		bool open = true;
@@ -62,6 +69,12 @@ namespace CG
 			nextFrameData = *nextIt;
 		}
 		
+		AnimationTrack(SceneObject *obj)
+		{
+			trackName = obj->name;
+			linkedObject = obj;
+		}
+
 	};
 
 
@@ -77,8 +90,23 @@ namespace CG
 		void SetTargetScene(MainScene* scene)
 		{
 			targetScene = scene;
-			animationTracks[0].linkedObject = scene->rootObject.children[0].get();
+
+			for (int i = 0; i < targetScene->ObjectList.size(); i++)
+			{
+				CreateAnimationTrack(targetScene->ObjectList[i]);
+			}
+
+			//animationTracks[0].keyframes.push_back(KeyframeData{ 0, glm::vec3(0.0f), glm::quat(glm::radians(glm::vec3(0.0f,0.0f,0.0f))), glm::vec3(1.0f) });
+			//animationTracks[0].keyframes.push_back(KeyframeData{ 30, glm::vec3(10.0f), glm::quat(glm::radians(glm::vec3(90.0f,0.0f,0.0f))), glm::vec3(1.0f) });
+			//animationTracks[0].keyframes.push_back(KeyframeData{ 60, glm::vec3(00.0f), glm::quat(glm::radians(glm::vec3(180.0f,0.0f,0.0f))), glm::vec3(1.0f) });
+			//animationTracks[0].keyframes.push_back(KeyframeData{ 90, glm::vec3(-10.0f), glm::quat(glm::radians(glm::vec3(270.0f,0.0f,0.0f))), glm::vec3(1.0f) });
+			//animationTracks[0].keyframes.push_back(KeyframeData{ 120, glm::vec3(0.0f), glm::quat(glm::radians(glm::vec3(360.0f,0.0f,0.0f))), glm::vec3(1.0f) });
 		}
+		void CreateAnimationTrack(SceneObject* obj)
+		{
+			animationTracks.push_back(AnimationTrack(obj));
+		}
+
 
 	private:
 		MainScene* targetScene = nullptr;
@@ -93,6 +121,9 @@ namespace CG
 		double timeAccumulated = 0;
 
 
-		bool transformOpen = true;
+		bool transformTabOpen = true;
+
+		KeyframeData* selectedKeyframe = nullptr;
+		AnimationTrack* selectedAnimationTrack = nullptr;
 	};
 }

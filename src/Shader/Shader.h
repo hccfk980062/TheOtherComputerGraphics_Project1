@@ -30,7 +30,10 @@ namespace CG
 		// utility uniform functions
 		void setUnifInt(const std::string& UnifVarname, int v0);
 		void setUnifFloat(const std::string& UnifVarname, float v0);
+
 		void setUnifVec3(const std::string& UnifVarname, float v0, float v1, float v2);
+		void setUnifVec3(const std::string& UnifVarname, GLfloat* value, int count = 1);
+
 		void setUnifVec4(const std::string& UnifVarname, float v0, float v1, float v2, float v3);
 		void setUnifMat4(const std::string& UnifVarname, glm::mat4 matrix_4x4);
 	};

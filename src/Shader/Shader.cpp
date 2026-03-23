@@ -109,6 +109,10 @@ namespace CG
 	{
 		glUniform3f(glGetUniformLocation(ID, UnifVarname.c_str()), v0, v1, v2);
 	}
+	void Shader::setUnifVec3(const std::string& UnifVarname, GLfloat *value, int count)
+	{
+		glUniform3fv(glGetUniformLocation(ID, UnifVarname.c_str()), count, value);
+	}
 	void Shader::setUnifVec4(const std::string& UnifVarname, float v0, float v1, float v2, float v3)
 	{
 		glUniform4f(glGetUniformLocation(ID, UnifVarname.c_str()), v0, v1, v2, v3);
