@@ -7,6 +7,8 @@
 #include<ImNeoSequencer/imgui_neo_internal.h>
 
 #include<glm/gtc/type_ptr.hpp>
+#include<json.hpp>
+using json = nlohmann::json;
 
 #include "Scene/MainScene.h"
 
@@ -32,6 +34,7 @@ namespace CG
 
 		bool open = true;
 
+		AnimationTrack() = default;
 
 		void SortKeyframeDatas()
 		{
@@ -77,6 +80,43 @@ namespace CG
 
 	};
 
+	// ── KeyframeData ──────────────────────────────────────────
+	inline void to_json(json& j, const KeyframeData& kf)
+	{
+		j = json{
+			{"frame",    kf.frame},
+			{"position", {kf.position.x, kf.position.y, kf.position.z}},
+			{"rotation", {kf.rotation.w, kf.rotation.x, kf.rotation.y, kf.rotation.z}},
+			{"scale",    {kf.scale.x,    kf.scale.y,    kf.scale.z}}
+		};
+	}
+	inline void from_json(const json& j, KeyframeData& kf)
+	{
+		j.at("frame").get_to(kf.frame);
+
+		auto pos = j.at("position");
+		kf.position = { pos[0], pos[1], pos[2] };
+
+		auto rot = j.at("rotation");
+		kf.rotation = { rot[0], rot[1], rot[2], rot[3] }; // w, x, y, z
+
+		auto scl = j.at("scale");
+		kf.scale = { scl[0], scl[1], scl[2] };
+	}
+
+	// ── AnimationTrack ────────────────────────────────────────
+	inline void to_json(json& j, const AnimationTrack& track)
+	{
+		j = json{
+			{"trackName", track.trackName},
+			{"keyframes", track.keyframes}   // 自動遞迴呼叫上面的 to_json
+		};
+	}
+	inline void from_json(const json& j, AnimationTrack& track)
+	{
+		j.at("trackName").get_to(track.trackName);
+		j.at("keyframes").get_to(track.keyframes); // 自動遞迴呼叫上面的 from_json
+	}
 
 	class SequencerWindow
 	{
@@ -125,5 +165,57 @@ namespace CG
 
 		KeyframeData* selectedKeyframe = nullptr;
 		AnimationTrack* selectedAnimationTrack = nullptr;
+
+		void ExportToJson(const std::string& filepath)
+		{
+			json j = animationTracks;   // 自動呼叫 to_json
+
+			std::ofstream file(filepath);
+			if (!file.is_open())
+			{
+				std::cerr << "[Sequencer] 無法開啟檔案: " << filepath << "\n";
+				return;
+			}
+
+			file << j.dump(4);          // 縮排 4 格，方便人工閱讀
+			std::cout << "[Sequencer] 已匯出至: " << filepath << "\n";
+		}
+		void ImportFromJson(const std::string& filepath)
+		{
+			std::ifstream file(filepath);
+			if (!file.is_open())
+			{
+				std::cerr << "[Sequencer] 找不到檔案: " << filepath << "\n";
+				return;
+			}
+
+			try
+			{
+				json j = json::parse(file);
+				animationTracks = j.get<std::vector<AnimationTrack>>(); // 自動呼叫 from_json
+				std::cout << "[Sequencer] 已載入 " << animationTracks.size() << " 條軌道\n";
+
+				for (auto& track : animationTracks)
+				{
+					for (auto& keyframe : track.keyframes)
+					{
+						keyframe.sourceTrack = &track;
+					}
+
+					for (auto* obj : targetScene->ObjectList)
+					{
+						if (obj->name == track.trackName)
+						{
+							track.linkedObject = obj;
+							break;
+						}
+					}
+				}
+			}
+			catch (const json::exception& e)
+			{
+				std::cerr << "[Sequencer] JSON 解析錯誤: " << e.what() << "\n";
+			}
+		}
 	};
 }

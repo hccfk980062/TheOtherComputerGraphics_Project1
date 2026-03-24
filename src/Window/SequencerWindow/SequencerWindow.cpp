@@ -55,6 +55,16 @@ namespace CG
                             selectedAnimationTrack->keyframes.push_back(KeyframeData{ currentFrame, selectedAnimationTrack->linkedObject->transform.position, selectedAnimationTrack->linkedObject->transform.rotation, selectedAnimationTrack->linkedObject->transform.scale, selectedAnimationTrack });
                     }
                 }
+                ImGui::SameLine();
+                if (ImGui::Button("Export Tracks to JSON"))
+                {
+                    ExportToJson("TempTrack.json");
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Import Tracks from JSON"))
+                {
+                    ImportFromJson("TempTrack.json");
+                }
                 ImGui::Separator();
 
                 // ── Sequencer widget ─────────────────────────────────────────
