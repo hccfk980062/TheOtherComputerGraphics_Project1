@@ -129,15 +129,11 @@ namespace CG
 		 * @param useTextures    true = 綁定模型本身的貼圖；false = 使用 defaultTexID
 		 * @param defaultTexID   當 useTextures = false 或貼圖為空時使用的預設貼圖 ID
 		 */
-		void DrawInstanced(Shader& shader, const std::vector<glm::mat4>& modelMatrices,
-			bool useTextures = true, unsigned int defaultTexID = 0)
+		void DrawInstanced(Shader& shader, const std::vector<glm::mat4>& modelMatrices, bool useTextures = true, unsigned int defaultTexID = 0)
 		{
 			// ── Step 1：動態更新 instanceVBO 的 Model Matrix 資料 ──
 			glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-			glBufferData(GL_ARRAY_BUFFER,
-				modelMatrices.size() * sizeof(glm::mat4),
-				modelMatrices.data(),
-				GL_DYNAMIC_DRAW);  // DYNAMIC 因為每幀都可能改變
+			glBufferData(GL_ARRAY_BUFFER, modelMatrices.size() * sizeof(glm::mat4), modelMatrices.data(), GL_DYNAMIC_DRAW);  // DYNAMIC 因為每幀都可能改變
 
 			// ── Step 2：設定材質 uniform ──
 			shader.setUnifInt("useTextures", useTextures);

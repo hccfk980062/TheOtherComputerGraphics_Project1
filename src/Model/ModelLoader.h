@@ -76,8 +76,7 @@ namespace CG
 		 * @param gamma       是否啟用 Gamma 校正
 		 * @param useTextures 是否載入並使用貼圖
 		 */
-		Model(string const& path, bool gamma = false, bool useTextures = true)
-			: gammaCorrection(gamma), useTextures(useTextures)
+		Model(string const& path, bool gamma = false, bool useTextures = true) : gammaCorrection(gamma), useTextures(useTextures)
 		{
 			defaultTextureID = createDefaultTexture();  // 預先建立 1×1 純白貼圖備用
 			loadModel(path);
@@ -335,8 +334,7 @@ namespace CG
 		 * @param typeName  對應的 Shader uniform 前綴名稱
 		 * @return          本次載入的貼圖列表
 		 */
-		vector<MeshTexture> loadMaterialTextures(aiMaterial* mat, aiTextureType type,
-			string typeName)
+		vector<MeshTexture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, string typeName)
 		{
 			vector<MeshTexture> textures;
 

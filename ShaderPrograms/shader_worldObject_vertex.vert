@@ -17,7 +17,7 @@ uniform mat4 projection;
 void main()
 {
     mat4 MVP = projection * view * instanceMatrix;
-    mat4 MV  = view * model;
+    mat4 MV  = view * instanceMatrix;
 
     // ── 修正：Normal Matrix 必須用 transpose(inverse(...)) ────────────
     // 僅取 mat3(MV) 在模型有非均勻縮放時會導致法向量扭曲，光照計算錯誤
