@@ -57,7 +57,7 @@ namespace CG
 		SetupSceneObject(model_Gundam[15], "Gundam_ULeftLeg", glm::vec3(1.93, -8.27, -1.3));//
 		SetupSceneObject(model_Gundam[16], "Gundam_URightHand", glm::vec3(-4.34, -0.62, -0.58));//
 		SetupSceneObject(model_Gundam[17], "Gundam_URightLeg", glm::vec3(-1.93, -8.27, -1.3));//
-
+		SetupSceneObject(model_Gundam[17], "Another_Gundam_URightLeg", glm::vec3(-1.93, -8.27, -1.3));//
 		//R_Leg
 		ReparentObject(FindObjectByName("Gundam_RightFoot"), FindObjectByName("Gundam_DRightLeg"));
 		ReparentObject(FindObjectByName("Gundam_DRightLeg"), FindObjectByName("Gundam_URightLeg"));
@@ -101,7 +101,7 @@ namespace CG
 	}
 	void MainScene::ReparentObject(SceneObject* obj, SceneObject* newParent)
 	{
-		// ✅ Step 1: 在改變層級之前，先記錄物件目前的世界矩陣
+		//在改變層級之前，先記錄物件目前的世界矩陣
 		glm::mat4 oldWorldMatrix = obj->GetWorldMatrix();
 
 		// 從舊父節點取出節點
@@ -116,11 +116,11 @@ namespace CG
 		node->parent = newParent;
 		newParent->children.push_back(std::move(node));
 
-		// ✅ Step 2: 用新父節點的世界矩陣反推，得到能保持世界位置不變的新 local matrix
+		// 用新父節點的世界矩陣反推，得到能保持世界位置不變的新 local matrix
 		glm::mat4 newParentWorld = newParent->GetWorldMatrix();
 		glm::mat4 newLocalMatrix = glm::inverse(newParentWorld) * oldWorldMatrix;
 
-		// ✅ Step 3: 將 mat4 分解回 TRS，寫入 local transform
+		// 將 mat4 分解回 Transform / Rotat e/ Scale，寫入 local transform
 		// 提取 Translation
 		obj->transform.position = glm::vec3(newLocalMatrix[3]);
 
@@ -144,29 +144,27 @@ namespace CG
 
 	void MainScene::Render(Shader* shader)
 	{
-		// Start drawing
 		shader->use();
 
-		// 渲染所有場景物件
-		RenderObjectRecursively(shader, &rootObject);
+		// view / projection 只需上傳一次
+		shader->setUnifMat4("view", freeViewCamera.GetViewMatrix());
+		shader->setUnifMat4("projection", freeViewCamera.GetProjectionMatrix());
+
+		//遍歷場景樹，依 Model* 分組收集 world matrix
+		std::unordered_map<Model*, std::vector<glm::mat4>> instanceMap; 
+		CollectInstances(&rootObject, instanceMap);
+
+		// ★ Step 2：每個獨立 Model 批次繪製
+		for (auto& [model, matrices] : instanceMap)
+			model->DrawInstanced(*shader, matrices);
 	}
-	void MainScene::RenderObjectRecursively(Shader* shader, SceneObject* obj)
+
+	void MainScene::CollectInstances(SceneObject* obj, std::unordered_map<Model*, std::vector<glm::mat4>>& outMap)
 	{
-		glm::mat4 viewMtrx = freeViewCamera.GetViewMatrix();
-		glm::mat4 projectionMtrx = freeViewCamera.GetProjectionMatrix();
-
 		if (obj->model != nullptr)
-			{
-				glm::mat4 worldMatrix = obj->GetWorldMatrix();
-				shader->setUnifMat4("model", worldMatrix);
-				shader->setUnifMat4("view", viewMtrx);
-				shader->setUnifMat4("projection", projectionMtrx);
-				obj->model->Draw(*shader);
-			}
+			outMap[obj->model].push_back(obj->GetWorldMatrix());
 
-		for (int i = 0; i < obj->children.size(); i++)
-		{
-			RenderObjectRecursively(shader, obj->children[i].get());
-		}
+		for (auto& child : obj->children)
+			CollectInstances(child.get(), outMap);
 	}
 }

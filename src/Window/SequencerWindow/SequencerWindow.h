@@ -166,6 +166,34 @@ namespace CG
 		KeyframeData* selectedKeyframe = nullptr;
 		AnimationTrack* selectedAnimationTrack = nullptr;
 
+		void TransformToFrame()
+		{
+			for (auto& track : animationTracks)
+			{
+				if (track.keyframes.size() == 0) continue;
+
+				KeyframeData previousFrameData;
+				KeyframeData nextFrameData;
+
+				track.GetClampedKeyframes(currentFrame, previousFrameData, nextFrameData);
+
+				float t = 0.0f;
+				int range = nextFrameData.frame - previousFrameData.frame;
+				if (range > 0)
+					t = float(currentFrame - previousFrameData.frame) / float(range);
+
+				t = glm::clamp(t, 0.0f, 1.0f);
+
+				glm::vec3 pos = glm::mix(previousFrameData.position, nextFrameData.position, t);
+				glm::quat rot = glm::slerp(previousFrameData.rotation, nextFrameData.rotation, t);
+				glm::vec3 scl = glm::mix(previousFrameData.scale, nextFrameData.scale, t);
+
+				track.linkedObject->SetPosition(pos);
+				track.linkedObject->SetRotation(rot);
+				track.linkedObject->SetScale(scl);
+			}
+		}
+
 		void ExportToJson(const std::string& filepath)
 		{
 			json j = animationTracks;   // 自動呼叫 to_json

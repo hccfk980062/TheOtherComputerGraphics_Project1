@@ -2,6 +2,7 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords;
+layout (location = 7) in mat4 instanceMatrix;
 
 vec3 vLightPosition = vec3(0, 10, 50);
 
@@ -15,7 +16,7 @@ uniform mat4 projection;
 
 void main()
 {
-    mat4 MVP = projection * view * model;
+    mat4 MVP = projection * view * instanceMatrix;
     mat4 MV  = view * model;
 
     // ── 修正：Normal Matrix 必須用 transpose(inverse(...)) ────────────

@@ -22,16 +22,32 @@ namespace CG
             if (targetScene)
             {
                 // ── Top bar: transport controls ──────────────────────────────
-                if (ImGui::Button("|<")) currentFrame = startFrame;
+                if (ImGui::Button("|<")) 
+                {
+                    currentFrame = startFrame;
+                    TransformToFrame();
+                }
                 ImGui::SameLine();
-                if (ImGui::Button("<"))  currentFrame = std::max(startFrame, currentFrame - 1);
+                if (ImGui::Button("<"))  
+                {
+                    currentFrame = std::max(startFrame, currentFrame - 1);
+                    TransformToFrame();
+                }
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(80.f);
                 ImGui::DragInt("Frame", &currentFrame, 1, startFrame, endFrame);
                 ImGui::SameLine();
-                if (ImGui::Button(">"))  currentFrame = std::min(endFrame, currentFrame + 1);
+                if (ImGui::Button(">")) 
+                {
+                    currentFrame = std::min(endFrame, currentFrame + 1);
+                    TransformToFrame();
+                }
                 ImGui::SameLine();
-                if (ImGui::Button(">|")) currentFrame = endFrame;
+                if (ImGui::Button(">|")) 
+                {
+                    currentFrame = endFrame;
+                    TransformToFrame();
+                }
                 ImGui::SameLine();
                 if (ImGui::Button("Play / Pause"))
                 {
@@ -58,6 +74,10 @@ namespace CG
                 ImGui::SameLine();
                 if (ImGui::Button("Export Tracks to JSON"))
                 {
+                    for (auto& track : animationTracks)
+                    {
+                        track.SortKeyframeDatas();
+                    }
                     ExportToJson("TempTrack.json");
                 }
                 ImGui::SameLine();
@@ -170,30 +190,7 @@ namespace CG
                         currentFrame += 1;
                         if (currentFrame > endFrame) currentFrame = startFrame;
 
-                        for(int i=0;i< animationTracks.size();i++)
-                        {
-                            if (animationTracks[i].keyframes.size() == 0) continue;
-
-                            KeyframeData previousFrameData;
-                            KeyframeData nextFrameData;
-
-                            animationTracks[i].GetClampedKeyframes(currentFrame, previousFrameData, nextFrameData);
-
-                            float t = 0.0f;
-                            int range = nextFrameData.frame - previousFrameData.frame;
-                            if (range > 0)
-                                t = float(currentFrame - previousFrameData.frame) / float(range);
-
-                            t = glm::clamp(t, 0.0f, 1.0f);
-
-                            glm::vec3 pos = glm::mix(previousFrameData.position, nextFrameData.position, t);
-                            glm::quat rot = glm::slerp(previousFrameData.rotation, nextFrameData.rotation, t);
-                            glm::vec3 scl = glm::mix(previousFrameData.scale, nextFrameData.scale, t);
-
-                            animationTracks[i].linkedObject->SetPosition(pos);
-                            animationTracks[i].linkedObject->SetRotation(rot);
-                            animationTracks[i].linkedObject->SetScale(scl);
-                        }
+                        TransformToFrame();
                     }
                 }
             }

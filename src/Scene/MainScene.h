@@ -5,6 +5,7 @@
 #include<stack>
 #include <vector>
 #include <memory>
+#include <unordered_map>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -39,7 +40,7 @@ namespace CG
 	private:
 		Model* model_Gundam[18];
 
-		void RenderObjectRecursively(Shader* shader, SceneObject* obj);
+		void CollectInstances(SceneObject* obj,std::unordered_map<Model*, std::vector<glm::mat4>>& outMap);
 
 		void SetupSceneObject(Model* model, std::string modelName, glm::vec3 objectPosition = glm::vec3(0))
 		{

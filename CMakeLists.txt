@@ -1,6 +1,15 @@
 ﻿cmake_minimum_required(VERSION 3.20)
 project(Project1_CMAKE VERSION 1.0)
 
+# 設定 C++17 標準
+set(CMAKE_CXX_STANDARD 17)
+
+# 強制要求編譯器支援此標準（若不支援則報錯，防止降級到舊版本）
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# 禁用編譯器特定擴充（如 gnu++17），僅使用標準 C++（-std=c++17）
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 # ─── Collect Sources (Only from src/) ───────────────────────────
 file(GLOB_RECURSE SRC_FILES
     "${CMAKE_SOURCE_DIR}/src/*.cpp"
