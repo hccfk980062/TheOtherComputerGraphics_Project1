@@ -32,7 +32,9 @@ namespace CG
         mutable bool isDirty = true;
     public:
         uint32_t id;
-        std::string name;
+        std::string objectName;
+        std::string animationGroupName;
+        std::string animationSerializedName;
         Transform transform;         // Local transform（給使用者操作）
         Model* model = nullptr;
         int objectType = 0;
@@ -78,5 +80,20 @@ namespace CG
             this->MarkDirty();
         }
         void SetScale(const glm::vec3& s) { transform.scale = s; }
+
+        std::vector<SceneObject*> GetChilerenObjects()
+        {
+            std::vector<SceneObject*> objects;
+            objects.push_back(this);
+
+            for (auto& child : children)
+            {
+                std::vector<SceneObject*>childObjs = child->GetChilerenObjects();
+
+                objects.insert(objects.end(), childObjs.begin(), childObjs.end());
+            }
+
+            return objects;
+        }
 	};
 }

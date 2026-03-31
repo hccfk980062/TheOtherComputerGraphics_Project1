@@ -34,7 +34,9 @@ namespace CG
 		SceneObject* selectedObject = nullptr;
 		int objectCount = 0;
 
-		SceneObject* MainScene::FindObjectByName(char* objectName);
+		SceneObject* FindObjectByName(std::string objectName);
+		std::vector<SceneObject*> GetObjectsInAnimationGroup(std::string groupName);
+		
 		void MainScene::ReparentObject(SceneObject* obj, SceneObject* newParent);
 
 	private:
@@ -42,11 +44,13 @@ namespace CG
 
 		void CollectInstances(SceneObject* obj,std::unordered_map<Model*, std::vector<glm::mat4>>& outMap);
 
-		void SetupSceneObject(Model* model, std::string modelName, glm::vec3 objectPosition = glm::vec3(0))
+		void SetupSceneObject(Model* model, std::string modelName, std::string animationSerializedName, glm::vec3 objectPosition = glm::vec3(0))
 		{
 			auto objUniquePtr = std::make_unique<SceneObject>();
 			objUniquePtr->id = objectCount++;
-			objUniquePtr->name = modelName;
+			objUniquePtr->objectName = (modelName + "_" + animationSerializedName);
+			objUniquePtr->animationGroupName = modelName;
+			objUniquePtr->animationSerializedName = animationSerializedName;
 			objUniquePtr->model = model;
 			objUniquePtr->objectType = 1;
 			objUniquePtr->transform.position = objectPosition;

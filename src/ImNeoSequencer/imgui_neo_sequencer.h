@@ -109,7 +109,7 @@ namespace ImGui {
     IMGUI_API bool BeginNeoSequencer(const char* id, FrameIndexType * frame, FrameIndexType * startFrame, FrameIndexType * endFrame,const ImVec2& size = ImVec2(0, 0),ImGuiNeoSequencerFlags flags = ImGuiNeoSequencerFlags_None);
     IMGUI_API void EndNeoSequencer(); //Call only when BeginNeoSequencer() returns true!!
 
-    IMGUI_API bool BeginNeoGroup(const char* label, bool* open = nullptr);
+    IMGUI_API bool BeginNeoGroup(const char* label, bool* open = nullptr, bool* isSelected = nullptr);
     IMGUI_API void EndNeoGroup();
 
     IMGUI_API bool BeginNeoTimeline(const char* label,FrameIndexType ** keyframes, uint32_t keyframeCount, bool * open = nullptr, ImGuiNeoTimelineFlags flags = ImGuiNeoTimelineFlags_None);

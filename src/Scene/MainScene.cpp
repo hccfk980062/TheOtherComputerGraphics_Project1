@@ -39,59 +39,75 @@ namespace CG
 		model_Gundam[17] = new Model("objModels/Gundam_OriginRepositioned/urightleg.obj", false, false);
 		// 初始化場景物件
 
-		SetupSceneObject(model_Gundam[0], "Gundam_Back", glm::vec3(0,0,-3.6));//
-		SetupSceneObject(model_Gundam[1], "Gundam_Body", glm::vec3(0, 0, 0));//
-		SetupSceneObject(model_Gundam[2], "Gundam_DBody", glm::vec3(0, -4.95, -0.8));//
-		SetupSceneObject(model_Gundam[3], "Gundam_DLeftHand", glm::vec3(4.3, -1.2, -0.67));//
-		SetupSceneObject(model_Gundam[4], "Gundam_DLeftLeg", glm::vec3(1.93, -15.13, -1.93));//
-		SetupSceneObject(model_Gundam[5], "Gundam_DRightHand", glm::vec3(-4.57, -1.25, -0.58));//
-		SetupSceneObject(model_Gundam[6], "Gundam_DRightLeg", glm::vec3(-1.78, -15.13, -1.73));//
-		SetupSceneObject(model_Gundam[7], "Gundam_Head", glm::vec3(0, 3.65, 0.58));//
-		SetupSceneObject(model_Gundam[8], "Gundam_LeftFoot", glm::vec3(2, -18.32, -1.5));//
-		SetupSceneObject(model_Gundam[9], "Gundam_LeftHand", glm::vec3(4.3, -5.4, -0.53));//
-		SetupSceneObject(model_Gundam[10], "Gundam_LeftShouder", glm::vec3(4.22, 0.82, -0.55));//
-		SetupSceneObject(model_Gundam[11], "Gundam_RightFoot", glm::vec3(-2, -18.32, -1.5));//
-		SetupSceneObject(model_Gundam[12], "Gundam_RightHand", glm::vec3(-4.6, -5.76, -0.52));//
-		SetupSceneObject(model_Gundam[13], "Gundam_RightShouder", glm::vec3(-4.22, 0.82, -0.55));//
-		SetupSceneObject(model_Gundam[14], "Gundam_ULeftHand", glm::vec3(4, -0.75, -0.65));//
-		SetupSceneObject(model_Gundam[15], "Gundam_ULeftLeg", glm::vec3(1.93, -8.27, -1.3));//
-		SetupSceneObject(model_Gundam[16], "Gundam_URightHand", glm::vec3(-4.34, -0.62, -0.58));//
-		SetupSceneObject(model_Gundam[17], "Gundam_URightLeg", glm::vec3(-1.93, -8.27, -1.3));//
-		SetupSceneObject(model_Gundam[17], "Another_Gundam_URightLeg", glm::vec3(-1.93, -8.27, -1.3));//
-		//R_Leg
-		ReparentObject(FindObjectByName("Gundam_RightFoot"), FindObjectByName("Gundam_DRightLeg"));
-		ReparentObject(FindObjectByName("Gundam_DRightLeg"), FindObjectByName("Gundam_URightLeg"));
-		
-		//L_Leg
-		ReparentObject(FindObjectByName("Gundam_LeftFoot"), FindObjectByName("Gundam_DLeftLeg"));
-		ReparentObject(FindObjectByName("Gundam_DLeftLeg"), FindObjectByName("Gundam_ULeftLeg"));
+		for (int i = 0; i < 4; i++)
+		{
+			std::string gundamSerialNum = "Gundam_" + std::to_string(i);
 
-		//R_Hand
-		ReparentObject(FindObjectByName("Gundam_RightHand"), FindObjectByName("Gundam_DRightHand"));
-		ReparentObject(FindObjectByName("Gundam_DRightHand"), FindObjectByName("Gundam_URightHand"));
-		ReparentObject(FindObjectByName("Gundam_URightHand"), FindObjectByName("Gundam_RightShouder"));
-		//L_Hand
-		ReparentObject(FindObjectByName("Gundam_LeftHand"), FindObjectByName("Gundam_DLeftHand"));
-		ReparentObject(FindObjectByName("Gundam_DLeftHand"), FindObjectByName("Gundam_ULeftHand"));
-		ReparentObject(FindObjectByName("Gundam_ULeftHand"), FindObjectByName("Gundam_LeftShouder"));
-		
-		//Body Assembly
-		ReparentObject(FindObjectByName("Gundam_RightShouder"), FindObjectByName("Gundam_Body"));
-		ReparentObject(FindObjectByName("Gundam_LeftShouder"), FindObjectByName("Gundam_Body"));
-		ReparentObject(FindObjectByName("Gundam_DBody"), FindObjectByName("Gundam_Body"));
-		ReparentObject(FindObjectByName("Gundam_Back"), FindObjectByName("Gundam_Body"));
-		ReparentObject(FindObjectByName("Gundam_Head"), FindObjectByName("Gundam_Body"));
+			SetupSceneObject(model_Gundam[0], gundamSerialNum , "Back", glm::vec3(0, 0, -3.6));//
+			SetupSceneObject(model_Gundam[1], gundamSerialNum , "Body", glm::vec3(0, 0, 0));//
+			SetupSceneObject(model_Gundam[2], gundamSerialNum, "DBody", glm::vec3(0, -4.95, -0.8));//
+			SetupSceneObject(model_Gundam[3], gundamSerialNum, "DLeftHand", glm::vec3(4.3, -1.2, -0.67));//
+			SetupSceneObject(model_Gundam[4], gundamSerialNum, "DLeftLeg", glm::vec3(1.93, -15.13, -1.93));//
+			SetupSceneObject(model_Gundam[5], gundamSerialNum, "DRightHand", glm::vec3(-4.57, -1.25, -0.58));//
+			SetupSceneObject(model_Gundam[6], gundamSerialNum, "DRightLeg", glm::vec3(-1.78, -15.13, -1.73));//
+			SetupSceneObject(model_Gundam[7], gundamSerialNum, "Head", glm::vec3(0, 3.65, 0.58));//
+			SetupSceneObject(model_Gundam[8], gundamSerialNum, "LeftFoot", glm::vec3(2, -18.32, -1.5));//
+			SetupSceneObject(model_Gundam[9], gundamSerialNum, "LeftHand", glm::vec3(4.3, -5.4, -0.53));//
+			SetupSceneObject(model_Gundam[10], gundamSerialNum, "LeftShouder", glm::vec3(4.22, 0.82, -0.55));//
+			SetupSceneObject(model_Gundam[11], gundamSerialNum, "RightFoot", glm::vec3(-2, -18.32, -1.5));//
+			SetupSceneObject(model_Gundam[12], gundamSerialNum, "RightHand", glm::vec3(-4.6, -5.76, -0.52));//
+			SetupSceneObject(model_Gundam[13], gundamSerialNum, "RightShouder", glm::vec3(-4.22, 0.82, -0.55));//
+			SetupSceneObject(model_Gundam[14], gundamSerialNum, "ULeftHand", glm::vec3(4, -0.75, -0.65));//
+			SetupSceneObject(model_Gundam[15], gundamSerialNum, "ULeftLeg", glm::vec3(1.93, -8.27, -1.3));//
+			SetupSceneObject(model_Gundam[16], gundamSerialNum, "URightHand", glm::vec3(-4.34, -0.62, -0.58));//
+			SetupSceneObject(model_Gundam[17], gundamSerialNum, "URightLeg", glm::vec3(-1.93, -8.27, -1.3));//
 
-		ReparentObject(FindObjectByName("Gundam_URightLeg"), FindObjectByName("Gundam_DBody"));
-		ReparentObject(FindObjectByName("Gundam_ULeftLeg"), FindObjectByName("Gundam_DBody"));
+			//R_Leg
+			ReparentObject(FindObjectByName(gundamSerialNum + "_RightFoot"), FindObjectByName(gundamSerialNum + "_DRightLeg"));
+			ReparentObject(FindObjectByName(gundamSerialNum + "_DRightLeg"), FindObjectByName(gundamSerialNum + "_URightLeg"));
+
+			//L_Leg
+			ReparentObject(FindObjectByName(gundamSerialNum + "_LeftFoot"), FindObjectByName(gundamSerialNum + "_DLeftLeg"));
+			ReparentObject(FindObjectByName(gundamSerialNum + "_DLeftLeg"), FindObjectByName(gundamSerialNum + "_ULeftLeg"));
+
+			//R_Hand
+			ReparentObject(FindObjectByName(gundamSerialNum + "_RightHand"), FindObjectByName(gundamSerialNum + "_DRightHand"));
+			ReparentObject(FindObjectByName(gundamSerialNum + "_DRightHand"), FindObjectByName(gundamSerialNum + "_URightHand"));
+			ReparentObject(FindObjectByName(gundamSerialNum + "_URightHand"), FindObjectByName(gundamSerialNum + "_RightShouder"));
+			//L_Hand
+			ReparentObject(FindObjectByName(gundamSerialNum + "_LeftHand"), FindObjectByName(gundamSerialNum + "_DLeftHand"));
+			ReparentObject(FindObjectByName(gundamSerialNum + "_DLeftHand"), FindObjectByName(gundamSerialNum + "_ULeftHand"));
+			ReparentObject(FindObjectByName(gundamSerialNum + "_ULeftHand"), FindObjectByName(gundamSerialNum + "_LeftShouder"));
+
+			//Body Assembly
+			ReparentObject(FindObjectByName(gundamSerialNum + "_RightShouder"), FindObjectByName(gundamSerialNum + "_Body"));
+			ReparentObject(FindObjectByName(gundamSerialNum + "_LeftShouder"), FindObjectByName(gundamSerialNum + "_Body"));
+			ReparentObject(FindObjectByName(gundamSerialNum + "_DBody"), FindObjectByName(gundamSerialNum + "_Body"));
+			ReparentObject(FindObjectByName(gundamSerialNum + "_Back"), FindObjectByName(gundamSerialNum + "_Body"));
+			ReparentObject(FindObjectByName(gundamSerialNum + "_Head"), FindObjectByName(gundamSerialNum + "_Body"));
+
+			ReparentObject(FindObjectByName(gundamSerialNum + "_URightLeg"), FindObjectByName(gundamSerialNum + "_DBody"));
+			ReparentObject(FindObjectByName(gundamSerialNum + "_ULeftLeg"), FindObjectByName(gundamSerialNum + "_DBody"));
+		}
 		return true;
 	}
+	std::vector<SceneObject*> MainScene::GetObjectsInAnimationGroup(std::string groupName)
+	{
+		std::vector<SceneObject*> result;
 
-	SceneObject* MainScene::FindObjectByName(char* objectName)
+		for (auto& obj : ObjectList)
+		{
+			if (obj->animationGroupName == groupName)
+				result.push_back(obj);
+		}
+		return result;
+	}
+
+	SceneObject* MainScene::FindObjectByName(std::string objectName)
 	{
 		for (int i = 0; i < ObjectList.size(); i++)
 		{
-			if (ObjectList[i]->name == objectName)
+			if (ObjectList[i]->objectName == objectName)
 			{
 				return ObjectList[i];
 			}

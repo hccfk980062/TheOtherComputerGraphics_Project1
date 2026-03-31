@@ -6,6 +6,8 @@
 #include<ImNeoSequencer/imgui_neo_sequencer.h>
 #include<ImNeoSequencer/imgui_neo_internal.h>
 
+#include<ImGuiFileDialog/ImGuiFileDialog.h>
+
 #include<glm/gtc/type_ptr.hpp>
 #include<json.hpp>
 using json = nlohmann::json;
@@ -74,10 +76,26 @@ namespace CG
 		
 		AnimationTrack(SceneObject *obj)
 		{
-			trackName = obj->name;
+			trackName = obj->animationSerializedName;
 			linkedObject = obj;
 		}
 
+	};
+	struct AnimationGroup
+	{
+		std::string groupName;
+		std::vector<AnimationTrack>tracks;
+
+		AnimationGroup() = default;
+
+		AnimationGroup(SceneObject* rootObject)
+		{
+			groupName = rootObject->animationGroupName;
+			for (auto& subObj : rootObject->GetChilerenObjects())
+			{
+				tracks.push_back(AnimationTrack(subObj));
+			}
+		}
 	};
 
 	// ── KeyframeData ──────────────────────────────────────────
@@ -118,6 +136,20 @@ namespace CG
 		j.at("keyframes").get_to(track.keyframes); // 自動遞迴呼叫上面的 from_json
 	}
 
+	// ── AnimationGroup ────────────────────────────────────────
+	inline void to_json(json& j, const AnimationGroup& track)
+	{
+		j = json{
+			{"groupName", track.groupName},
+			{"tracks", track.tracks}   // 自動遞迴呼叫上面的 to_json
+		};
+	}
+	inline void from_json(const json& j, AnimationGroup& track)
+	{
+		j.at("groupName").get_to(track.groupName);
+		j.at("tracks").get_to(track.tracks); // 自動遞迴呼叫上面的 from_json
+	}
+
 	class SequencerWindow
 	{
 	public:
@@ -131,26 +163,21 @@ namespace CG
 		{
 			targetScene = scene;
 
-			for (int i = 0; i < targetScene->ObjectList.size(); i++)
+			for (auto& object : targetScene->rootObject.children)
 			{
-				CreateAnimationTrack(targetScene->ObjectList[i]);
+				CreateAnimationGroup(object.get());
 			}
-
-			//animationTracks[0].keyframes.push_back(KeyframeData{ 0, glm::vec3(0.0f), glm::quat(glm::radians(glm::vec3(0.0f,0.0f,0.0f))), glm::vec3(1.0f) });
-			//animationTracks[0].keyframes.push_back(KeyframeData{ 30, glm::vec3(10.0f), glm::quat(glm::radians(glm::vec3(90.0f,0.0f,0.0f))), glm::vec3(1.0f) });
-			//animationTracks[0].keyframes.push_back(KeyframeData{ 60, glm::vec3(00.0f), glm::quat(glm::radians(glm::vec3(180.0f,0.0f,0.0f))), glm::vec3(1.0f) });
-			//animationTracks[0].keyframes.push_back(KeyframeData{ 90, glm::vec3(-10.0f), glm::quat(glm::radians(glm::vec3(270.0f,0.0f,0.0f))), glm::vec3(1.0f) });
-			//animationTracks[0].keyframes.push_back(KeyframeData{ 120, glm::vec3(0.0f), glm::quat(glm::radians(glm::vec3(360.0f,0.0f,0.0f))), glm::vec3(1.0f) });
 		}
-		void CreateAnimationTrack(SceneObject* obj)
+		void CreateAnimationGroup(SceneObject* obj)
 		{
-			animationTracks.push_back(AnimationTrack(obj));
+			animationGroups.push_back(AnimationGroup(obj));
 		}
 
 
 	private:
 		MainScene* targetScene = nullptr;
-		std::vector<AnimationTrack> animationTracks; //目前應該只有一個 (控制某個物件的變換用的Track)
+
+		std::vector<AnimationGroup>animationGroups;
 
 		int currentFrame = 0;
 		int startFrame = 0;
@@ -159,91 +186,49 @@ namespace CG
 
 		double lastTime = 0;
 		double timeAccumulated = 0;
+		int selectedGroupIndex = -1;
 
-
-		bool transformTabOpen = true;
+		bool transformTabOpen[4] = {true};
 
 		KeyframeData* selectedKeyframe = nullptr;
 		AnimationTrack* selectedAnimationTrack = nullptr;
 
 		void TransformToFrame()
 		{
-			for (auto& track : animationTracks)
+			for(auto& group : animationGroups)
 			{
-				if (track.keyframes.size() == 0) continue;
-
-				KeyframeData previousFrameData;
-				KeyframeData nextFrameData;
-
-				track.GetClampedKeyframes(currentFrame, previousFrameData, nextFrameData);
-
-				float t = 0.0f;
-				int range = nextFrameData.frame - previousFrameData.frame;
-				if (range > 0)
-					t = float(currentFrame - previousFrameData.frame) / float(range);
-
-				t = glm::clamp(t, 0.0f, 1.0f);
-
-				glm::vec3 pos = glm::mix(previousFrameData.position, nextFrameData.position, t);
-				glm::quat rot = glm::slerp(previousFrameData.rotation, nextFrameData.rotation, t);
-				glm::vec3 scl = glm::mix(previousFrameData.scale, nextFrameData.scale, t);
-
-				track.linkedObject->SetPosition(pos);
-				track.linkedObject->SetRotation(rot);
-				track.linkedObject->SetScale(scl);
-			}
-		}
-
-		void ExportToJson(const std::string& filepath)
-		{
-			json j = animationTracks;   // 自動呼叫 to_json
-
-			std::ofstream file(filepath);
-			if (!file.is_open())
-			{
-				std::cerr << "[Sequencer] 無法開啟檔案: " << filepath << "\n";
-				return;
-			}
-
-			file << j.dump(4);          // 縮排 4 格，方便人工閱讀
-			std::cout << "[Sequencer] 已匯出至: " << filepath << "\n";
-		}
-		void ImportFromJson(const std::string& filepath)
-		{
-			std::ifstream file(filepath);
-			if (!file.is_open())
-			{
-				std::cerr << "[Sequencer] 找不到檔案: " << filepath << "\n";
-				return;
-			}
-
-			try
-			{
-				json j = json::parse(file);
-				animationTracks = j.get<std::vector<AnimationTrack>>(); // 自動呼叫 from_json
-				std::cout << "[Sequencer] 已載入 " << animationTracks.size() << " 條軌道\n";
-
-				for (auto& track : animationTracks)
+				for (auto& track : group.tracks)
 				{
-					for (auto& keyframe : track.keyframes)
-					{
-						keyframe.sourceTrack = &track;
-					}
+					if (track.keyframes.size() == 0) continue;
 
-					for (auto* obj : targetScene->ObjectList)
-					{
-						if (obj->name == track.trackName)
-						{
-							track.linkedObject = obj;
-							break;
-						}
-					}
+					KeyframeData previousFrameData;
+					KeyframeData nextFrameData;
+
+					track.GetClampedKeyframes(currentFrame, previousFrameData, nextFrameData);
+
+					float t = 0.0f;
+					int range = nextFrameData.frame - previousFrameData.frame;
+					if (range > 0)
+						t = float(currentFrame - previousFrameData.frame) / float(range);
+
+					t = glm::clamp(t, 0.0f, 1.0f);
+
+					glm::vec3 pos = glm::mix(previousFrameData.position, nextFrameData.position, t);
+					glm::quat rot = glm::slerp(previousFrameData.rotation, nextFrameData.rotation, t);
+					glm::vec3 scl = glm::mix(previousFrameData.scale, nextFrameData.scale, t);
+
+					track.linkedObject->SetPosition(pos);
+					track.linkedObject->SetRotation(rot);
+					track.linkedObject->SetScale(scl);
 				}
 			}
-			catch (const json::exception& e)
-			{
-				std::cerr << "[Sequencer] JSON 解析錯誤: " << e.what() << "\n";
-			}
 		}
+
+		void ExportAllToJson(const std::string& filepath);
+		void ImportAllFromJson(const std::string& filepath);
+
+		// ── 單一 Group 的匯出/匯入 ────────────────────────────
+		void ExportGroupToJson(int groupIndex, const std::string& filepath);
+		void ImportGroupFromJson(int groupIndex, const std::string& filepath);
 	};
 }

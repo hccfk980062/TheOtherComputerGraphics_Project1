@@ -61,7 +61,7 @@ namespace CG
         if (obj == targetScene->selectedObject)
             flags |= ImGuiTreeNodeFlags_Selected;
 
-        bool opened = ImGui::TreeNodeEx((void*)(intptr_t)obj->id, flags, "%s", obj->name.c_str());
+        bool opened = ImGui::TreeNodeEx((void*)(intptr_t)obj->id, flags, "%s", obj->objectName.c_str());
 
         // Selection
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
@@ -74,7 +74,7 @@ namespace CG
         if (ImGui::BeginDragDropSource()) 
         {
             ImGui::SetDragDropPayload("HIERARCHY_NODE", &obj, sizeof(SceneObject*));
-            ImGui::Text("Moving: %s", obj->name.c_str());
+            ImGui::Text("Moving: %s", obj->objectName.c_str());
             ImGui::EndDragDropSource();
         }
 

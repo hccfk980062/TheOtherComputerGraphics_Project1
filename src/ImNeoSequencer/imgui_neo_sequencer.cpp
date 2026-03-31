@@ -1012,9 +1012,22 @@ namespace ImGui
         EndChild();
     }
 
-    IMGUI_API bool BeginNeoGroup(const char* label, bool* open)
+    IMGUI_API bool BeginNeoGroup(const char* label, bool* open, bool* isSelected)
     {
-        return BeginNeoTimeline(label, nullptr, 0, open, ImGuiNeoTimelineFlags_Group);
+        const bool result = BeginNeoTimeline(label, nullptr, 0, open, ImGuiNeoTimelineFlags_Group);
+
+        if (isSelected != nullptr)
+        {
+            IM_ASSERT(inSequencer && "Not in active sequencer!");
+            auto& context = sequencerData[currentSequencer];
+            // Compute the same ID that BeginNeoTimelineEx / groupBehaviour used,
+            // so we can check selection state regardless of whether the group is open.
+            ImGuiWindow* window = GetCurrentWindow();
+            const ImGuiID id = window->GetID(label);
+            *isSelected = (context.SelectedTimeline == id);
+        }
+
+        return result;
     }
 
     IMGUI_API void EndNeoGroup()
