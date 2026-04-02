@@ -37,6 +37,7 @@ namespace CG
 		model_Gundam[15] = new Model("objModels/Gundam_OriginRepositioned/uleftleg.obj", false, false);
 		model_Gundam[16] = new Model("objModels/Gundam_OriginRepositioned/urighthand.obj", false, false);
 		model_Gundam[17] = new Model("objModels/Gundam_OriginRepositioned/urightleg.obj", false, false);
+
 		// 初始化場景物件
 
 		for (int i = 0; i < 4; i++)
@@ -46,16 +47,16 @@ namespace CG
 			SetupSceneObject(model_Gundam[0], gundamSerialNum , "Back", glm::vec3(0, 0, -3.6));//
 			SetupSceneObject(model_Gundam[1], gundamSerialNum , "Body", glm::vec3(0, 0, 0));//
 			SetupSceneObject(model_Gundam[2], gundamSerialNum, "DBody", glm::vec3(0, -4.95, -0.8));//
-			SetupSceneObject(model_Gundam[3], gundamSerialNum, "DLeftHand", glm::vec3(4.3, -1.2, -0.67));//
+			SetupSceneObject(model_Gundam[3], gundamSerialNum, "DLeftHand", glm::vec3(4.3, -4.2, -0.67));//
 			SetupSceneObject(model_Gundam[4], gundamSerialNum, "DLeftLeg", glm::vec3(1.93, -15.13, -1.93));//
-			SetupSceneObject(model_Gundam[5], gundamSerialNum, "DRightHand", glm::vec3(-4.57, -1.25, -0.58));//
+			SetupSceneObject(model_Gundam[5], gundamSerialNum, "DRightHand", glm::vec3(-4.57, -4.25, -0.58));//
 			SetupSceneObject(model_Gundam[6], gundamSerialNum, "DRightLeg", glm::vec3(-1.78, -15.13, -1.73));//
 			SetupSceneObject(model_Gundam[7], gundamSerialNum, "Head", glm::vec3(0, 3.65, 0.58));//
 			SetupSceneObject(model_Gundam[8], gundamSerialNum, "LeftFoot", glm::vec3(2, -18.32, -1.5));//
-			SetupSceneObject(model_Gundam[9], gundamSerialNum, "LeftHand", glm::vec3(4.3, -5.4, -0.53));//
+			SetupSceneObject(model_Gundam[9], gundamSerialNum, "LeftHand", glm::vec3(4.3, -8.4, -0.53));//
 			SetupSceneObject(model_Gundam[10], gundamSerialNum, "LeftShouder", glm::vec3(4.22, 0.82, -0.55));//
 			SetupSceneObject(model_Gundam[11], gundamSerialNum, "RightFoot", glm::vec3(-2, -18.32, -1.5));//
-			SetupSceneObject(model_Gundam[12], gundamSerialNum, "RightHand", glm::vec3(-4.6, -5.76, -0.52));//
+			SetupSceneObject(model_Gundam[12], gundamSerialNum, "RightHand", glm::vec3(-4.6, -8.76, -0.52));//
 			SetupSceneObject(model_Gundam[13], gundamSerialNum, "RightShouder", glm::vec3(-4.22, 0.82, -0.55));//
 			SetupSceneObject(model_Gundam[14], gundamSerialNum, "ULeftHand", glm::vec3(4, -0.75, -0.65));//
 			SetupSceneObject(model_Gundam[15], gundamSerialNum, "ULeftLeg", glm::vec3(1.93, -8.27, -1.3));//

@@ -41,6 +41,8 @@ namespace CG
 
 	private:
 		Model* model_Gundam[18];
+		//Model* model_photonBlade;
+
 
 		void CollectInstances(SceneObject* obj,std::unordered_map<Model*, std::vector<glm::mat4>>& outMap);
 

@@ -74,7 +74,7 @@ namespace CG
                         }
                     }
                     ImGui::SameLine();
-                    if (ImGui::Button("Export ALL Tracks to JSON"))
+                    if (ImGui::Button("Export ALL"))
                     {
                         IGFD::FileDialogConfig config;
                         config.path = ".";
@@ -82,11 +82,32 @@ namespace CG
                         ImGuiFileDialog::Instance()->OpenDialog("FileDialog_ExportALL", "Export ALL Animation JSON to:", ".json", config);
                     }
                     ImGui::SameLine();
-                    if (ImGui::Button("Import ALL Tracks from JSON"))
+                    if (ImGui::Button("Import ALL"))
                     {
                         IGFD::FileDialogConfig config;
                         config.path = ".";
                         ImGuiFileDialog::Instance()->OpenDialog("FileDialog_ImportALL", "Import ALL Animation JSON from:", ".json", config);
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Export Selected"))
+                    {
+                        if (selectedGroupIndex >= 0 && selectedGroupIndex < animationGroups.size())
+                        {
+                            IGFD::FileDialogConfig config;
+                            config.path = ".";
+                            config.fileName = "ExportedAnimation_" + animationGroups[selectedGroupIndex].groupName + ".json";
+                            ImGuiFileDialog::Instance()->OpenDialog("FileDialog_ExportSpecific", "Export the Animation JSON of " + animationGroups[selectedGroupIndex].groupName + " to:", ".json", config);
+                        }
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Import Selected"))
+                    {
+                        if(selectedGroupIndex >= 0 && selectedGroupIndex < animationGroups.size())
+                        {
+                            IGFD::FileDialogConfig config;
+                            config.path = ".";
+                            ImGuiFileDialog::Instance()->OpenDialog("FileDialog_ImportSpecific", "Import the Animation JSON of " + animationGroups[selectedGroupIndex].groupName + " from:", ".json", config);
+                        }
                     }
                     ImGui::Separator();
                 }
@@ -125,6 +146,39 @@ namespace CG
                     ImGuiFileDialog::Instance()->Close();
                 }
 
+                if (ImGuiFileDialog::Instance()->Display("FileDialog_ExportSpecific"))
+                {
+                    if (ImGuiFileDialog::Instance()->IsOk())
+                    {
+                        // action if OK
+                        std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                        // action
+                        for (auto& group : animationGroups)
+                        {
+                            for (auto& track : group.tracks)
+                                track.SortKeyframeDatas();
+                        }
+                        ExportSpecificGroupToJson(selectedGroupIndex, filePathName);
+                    }
+
+                    // close
+                    ImGuiFileDialog::Instance()->Close();
+                }
+                if (ImGuiFileDialog::Instance()->Display("FileDialog_ImportSpecific"))
+                {
+                    if (ImGuiFileDialog::Instance()->IsOk())
+                    {
+                        // action if OK
+                        std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                        // action
+                        ImportSpecificGroupFromJson(selectedGroupIndex, filePathName);
+                    }
+
+                    // close
+                    ImGuiFileDialog::Instance()->Close();
+                }
+
+
                 // ── Sequencer widget ─────────────────────────────────────────
                 // BeginNeoSequencer returns false if the widget is collapsed/clipped
                 if (ImGui::BeginNeoSequencer("Sequencer", &currentFrame, &startFrame, &endFrame, {0,0}, 
@@ -136,33 +190,6 @@ namespace CG
                         std::string TrackName = group.groupName;
                         bool isTimelineGroupSelected = false;
 
-                        // ── 新增：每個 Group 旁的單獨匯出/入按鈕 ──────────────────
-                        ImGui::PushID(i);  // 確保按鈕 ID 不衝突
-
-                        std::string exportBtnLabel = "Export##" + std::to_string(i);
-                        std::string importBtnLabel = "Import##" + std::to_string(i);
-
-                        if (ImGui::SmallButton(exportBtnLabel.c_str()))
-                        {
-                            selectedGroupIndex = i;   // 記住要匯出哪個 Group
-                            IGFD::FileDialogConfig config;
-                            config.path = ".";
-                            config.fileName = group.groupName + "_Animation.json";
-                            ImGuiFileDialog::Instance()->OpenDialog(
-                                "FileDialog_ExportGroup", "Export Group Animation to:", ".json", config);
-                        }
-                        ImGui::SameLine();
-                        if (ImGui::SmallButton(importBtnLabel.c_str()))
-                        {
-                            selectedGroupIndex = i;   // 記住要匯入哪個 Group
-                            IGFD::FileDialogConfig config;
-                            config.path = ".";
-                            ImGuiFileDialog::Instance()->OpenDialog(
-                                "FileDialog_ImportGroup", "Import Group Animation from:", ".json", config);
-                        }
-                        ImGui::SameLine();
-
-                        ImGui::PopID();
                         if (ImGui::BeginNeoGroup(TrackName.c_str(), &transformTabOpen[i], &isTimelineGroupSelected))
                         {
                             for (auto&track : group.tracks)
@@ -194,7 +221,6 @@ namespace CG
                                     ImGui::EndNeoTimeLine();
                                 }
                             }
-
                             ImGui::EndNeoGroup();
                         }
 
@@ -202,7 +228,8 @@ namespace CG
                         {
                             if (isTimelineGroupSelected) // 當 NeoGroup被選取時，傳回True
                             {
-                                std::cout << "Seleted Timeline Track: " << i << "\n";
+                                std::cout << "Seleted Timeline Group: " << i << "\n";
+                                selectedGroupIndex = i;
                             }
                         }
                         i++;
@@ -212,7 +239,7 @@ namespace CG
                         if (ImGuiFileDialog::Instance()->IsOk())
                         {
                             std::string path = ImGuiFileDialog::Instance()->GetFilePathName();
-                            ExportGroupToJson(selectedGroupIndex, path);
+                            ExportSpecificGroupToJson(selectedGroupIndex, path);
                         }
                         ImGuiFileDialog::Instance()->Close();
                     }
@@ -221,7 +248,7 @@ namespace CG
                         if (ImGuiFileDialog::Instance()->IsOk())
                         {
                             std::string path = ImGuiFileDialog::Instance()->GetFilePathName();
-                            ImportGroupFromJson(selectedGroupIndex, path);
+                            ImportSpecificGroupFromJson(selectedGroupIndex, path);
                         }
                         ImGuiFileDialog::Instance()->Close();
                     }
@@ -356,7 +383,7 @@ namespace CG
     }
 
     // ── 匯出單一 Group ───────────────────────────────────
-    void SequencerWindow::ExportGroupToJson(int groupIndex, const std::string& filepath)
+    void SequencerWindow::ExportSpecificGroupToJson(int groupIndex, const std::string& filepath)
     {
         if (groupIndex < 0 || groupIndex >= (int)animationGroups.size()) return;
 
@@ -377,7 +404,7 @@ namespace CG
     }
 
     // ── 匯入單一 Group (只覆蓋對應索引的軌道資料) ─────────────────
-    void SequencerWindow::ImportGroupFromJson(int groupIndex, const std::string& filepath)
+    void SequencerWindow::ImportSpecificGroupFromJson(int groupIndex, const std::string& filepath)
     {
         if (groupIndex < 0 || groupIndex >= (int)animationGroups.size()) return;
 

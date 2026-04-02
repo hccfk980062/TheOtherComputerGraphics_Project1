@@ -228,7 +228,7 @@ namespace CG
 		void ImportAllFromJson(const std::string& filepath);
 
 		// ── 單一 Group 的匯出/匯入 ────────────────────────────
-		void ExportGroupToJson(int groupIndex, const std::string& filepath);
-		void ImportGroupFromJson(int groupIndex, const std::string& filepath);
+		void ExportSpecificGroupToJson(int groupIndex, const std::string& filepath);
+		void ImportSpecificGroupFromJson(int groupIndex, const std::string& filepath);
 	};
 }
