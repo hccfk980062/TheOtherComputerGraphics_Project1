@@ -5,6 +5,8 @@ namespace CG
 {
 	MainScene::MainScene()
 	{
+		photonBladeTrail.color = glm::vec3(1.0f,0.0f,0.0f);  // 對應自發光色
+		photonBladeTrail.duration = 0.3f;
 	}
 
 	MainScene::~MainScene()
@@ -38,6 +40,7 @@ namespace CG
 		model_Gundam[16] = new Model("objModels/Gundam_OriginRepositioned/urighthand.obj", false, false);
 		model_Gundam[17] = new Model("objModels/Gundam_OriginRepositioned/urightleg.obj", false, false);
 
+		model_photonBlade = new Model("objModels/PhotonBlade/untitled.fbx", false, true);
 		// 初始化場景物件
 
 		for (int i = 0; i < 4; i++)
@@ -90,6 +93,8 @@ namespace CG
 			ReparentObject(FindObjectByName(gundamSerialNum + "_URightLeg"), FindObjectByName(gundamSerialNum + "_DBody"));
 			ReparentObject(FindObjectByName(gundamSerialNum + "_ULeftLeg"), FindObjectByName(gundamSerialNum + "_DBody"));
 		}
+
+		SetupSceneObject(model_photonBlade, "PhotonBlade", "PhotonBlade");
 		return true;
 	}
 	std::vector<SceneObject*> MainScene::GetObjectsInAnimationGroup(std::string groupName)
@@ -159,13 +164,13 @@ namespace CG
 		obj->MarkDirty();
 	}
 
-	void MainScene::Render(Shader* shader)
+	void MainScene::RenderObjects(Shader* worldObjectShader)
 	{
-		shader->use();
+		worldObjectShader->use();
 
 		// view / projection 只需上傳一次
-		shader->setUnifMat4("view", freeViewCamera.GetViewMatrix());
-		shader->setUnifMat4("projection", freeViewCamera.GetProjectionMatrix());
+		worldObjectShader->setUnifMat4("view", freeViewCamera.GetViewMatrix());
+		worldObjectShader->setUnifMat4("projection", freeViewCamera.GetProjectionMatrix());
 
 		//遍歷場景樹，依 Model* 分組收集 world matrix
 		std::unordered_map<Model*, std::vector<glm::mat4>> instanceMap; 
@@ -173,7 +178,26 @@ namespace CG
 
 		// ★ Step 2：每個獨立 Model 批次繪製
 		for (auto& [model, matrices] : instanceMap)
-			model->DrawInstanced(*shader, matrices);
+			model->DrawInstanced(*worldObjectShader, matrices);
+	}
+
+	void MainScene::RenderTrails(Shader* trailShader, Framebuffer* trailFramebuffer)
+	{
+		trailShader->use();
+
+		// view / projection 只需上傳一次
+		trailShader->setUnifMat4("view", freeViewCamera.GetViewMatrix());
+		trailShader->setUnifMat4("projection", freeViewCamera.GetProjectionMatrix());
+
+		float currentTime = (float)glfwGetTime();
+		glm::vec3 worldEdgeA = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(10.0f, 0.0f, 0.0f, 1.0f));
+		glm::vec3 worldEdgeB = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(0.5f, 0.0f, 0.0f, 1.0f));
+		photonBladeTrail.update(worldEdgeA, worldEdgeB, currentTime);
+
+		// 2. FBO Emissive Pass：先畫場景，再畫 trail（一起被 Bloom）
+		glBindFramebuffer(GL_FRAMEBUFFER, trailFramebuffer->fbo);
+		//FindObjectByName("PhotonBlade_PhotonBlade")->model->DrawInstanced(*trailShader, std::vector < glm::mat4 >{FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix()});
+		photonBladeTrail.draw(trailShader);  // ← 在同一個 FBO 內
 	}
 
 	void MainScene::CollectInstances(SceneObject* obj, std::unordered_map<Model*, std::vector<glm::mat4>>& outMap)

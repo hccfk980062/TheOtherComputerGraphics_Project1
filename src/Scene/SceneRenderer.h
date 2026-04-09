@@ -2,7 +2,6 @@
 
 #include "Shader/Shader.h"
 #include "Scene/MainScene.h"
-#include "FrameBuffer/Framebuffer.h"
 
 namespace CG
 {
@@ -11,14 +10,14 @@ namespace CG
 	private:
 		GLenum mode = GL_FILL; // GL_FILL or GL_LINE
 
-		Shader* defaultShader;
+		Shader* shaderProgram_trail;
 		Shader* shaderProgram_worldObject;
-		Framebuffer* framebuffer;
+		Framebuffer* viewportFramebuffer;
 	public:
 
 		auto Initialize(int width, int height) -> bool;
 
 		void RenderScene(MainScene *scene);
-		Framebuffer* getCurrentFramebuffer();
+		Framebuffer* getCurrentViewportFramebuffer();
 	};
 }

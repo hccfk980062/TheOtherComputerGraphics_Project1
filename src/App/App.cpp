@@ -111,7 +111,7 @@ namespace CG
 			// ── Step 0: 用上一幀記錄的 Viewport 尺寸，在 Render 之前同步 FBO ──────
 			// 這樣可以確保 RenderScene 使用的是正確的尺寸，
 			// 而不是在 render 完之後才 resize（那樣會清空剛渲染好的 texture）
-			viewportWindow->SyncFramebufferSize(sceneRenderer->getCurrentFramebuffer());
+			viewportWindow->SyncFramebufferSize(sceneRenderer->getCurrentViewportFramebuffer());
 
 			// ── Step 1: Render 3D scene → FBO ────────────────────────────────────
 			sceneRenderer->RenderScene(mainScene);
@@ -133,7 +133,7 @@ namespace CG
 			BeginDockspace();
 
 			// UpdateScreen 內部會記錄本幀的 Viewport 尺寸，供下一幀 Step 0 使用
-			viewportWindow->UpdateScreen(mainScene, sceneRenderer->getCurrentFramebuffer());
+			viewportWindow->UpdateScreen(mainScene, sceneRenderer->getCurrentViewportFramebuffer());
 			inspectorWindow->Display();
 			hierarchyWindow->Display();
 			sequencerWindow->Display();

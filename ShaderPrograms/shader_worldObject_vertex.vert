@@ -2,7 +2,7 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords;
-layout (location = 7) in mat4 instanceMatrix;
+layout (location = 7) in mat4 InstanceMatrix;
 
 vec3 vLightPosition = vec3(0, 10, 50);
 
@@ -16,8 +16,8 @@ uniform mat4 projection;
 
 void main()
 {
-    mat4 MVP = projection * view * instanceMatrix;
-    mat4 MV  = view * instanceMatrix;
+    mat4 MVP = projection * view * InstanceMatrix;
+    mat4 MV  = view * InstanceMatrix;
 
     // ── 修正：Normal Matrix 必須用 transpose(inverse(...)) ────────────
     // 僅取 mat3(MV) 在模型有非均勻縮放時會導致法向量扭曲，光照計算錯誤

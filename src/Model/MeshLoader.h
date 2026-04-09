@@ -65,6 +65,8 @@ namespace CG
 		glm::vec3 ambient = glm::vec3(0.1f);  ///< 環境光反射係數（Ka）
 		glm::vec3 diffuse = glm::vec3(1.0f);  ///< 漫反射係數（Kd）
 		glm::vec3 specular = glm::vec3(0.5f);  ///< 鏡面反射係數（Ks）
+		glm::vec3 emissive = glm::vec3(0.0f);  // ← 新增
+		float     emissiveStrength = 1.0f;             // ← 新增（對應 Blender 的 Strength
 		float     shininess = 32.0f;           ///< 高光指數（Ns），越大光斑越小越亮
 		float     opacity = 1.0f;            ///< 不透明度（d / Tr），1.0 = 完全不透明
 	};
@@ -140,6 +142,8 @@ namespace CG
 			shader.setUnifVec3("material.ambient", &material.ambient[0]);
 			shader.setUnifVec3("material.diffuse", &material.diffuse[0]);
 			shader.setUnifVec3("material.specular", &material.specular[0]);
+			shader.setUnifVec3("material.emissive", &material.emissive[0]);
+			shader.setUnifFloat("material.emissiveStrength", material.emissiveStrength);
 			shader.setUnifFloat("material.shininess", material.shininess);
 
 			// ── Step 3：綁定貼圖 ──
@@ -155,7 +159,7 @@ namespace CG
 				// 有貼圖模式：依類型計數命名（texture_diffuse1、texture_specular1 …）
 				// 並逐一綁定到對應的 Texture Unit
 				unsigned int diffuseNr = 1, specularNr = 1,
-					normalNr = 1, heightNr = 1;
+					normalNr = 1, heightNr = 1, emissiveNr = 1;
 
 				for (unsigned int i = 0; i < textures.size(); i++)
 				{
@@ -167,6 +171,7 @@ namespace CG
 					else if (name == "texture_specular") number = std::to_string(specularNr++);
 					else if (name == "texture_normal")   number = std::to_string(normalNr++);
 					else if (name == "texture_height")   number = std::to_string(heightNr++);
+					else if (name == "texture_emissive")   number = std::to_string(emissiveNr++);
 
 					// 將 Texture Unit 編號傳入 Shader，再綁定貼圖
 					glUniform1i(glGetUniformLocation(shader.ID, (name + number).c_str()), i);
