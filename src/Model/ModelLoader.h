@@ -146,7 +146,65 @@ namespace CG
 			defaultTextureID = createDefaultTexture();  // 預先建立 1×1 純白貼圖備用
             loadModel(path);
         }
+        
+        //Draw a cube
+        Model(float cube_X, float cube_Y, float cube_z)
+        {
+            defaultTextureID = createDefaultTexture();  // 預先建立 1×1 純白貼圖備用
+            useTextures = false;
+            gammaCorrection = false;
 
+            float rawVertices[] = {
+            cube_X,  cube_Y,  cube_z,  1.0f,  1.0f,  1.0f,
+            cube_X, -cube_Y,  cube_z, 1.0f,  -1.0f,  1.0f,
+            -cube_X, -cube_Y,  cube_z, -1.0f,  -1.0f,  1.0f,
+            -cube_X,  cube_Y,  cube_z,  -1.0f,  1.0f,  1.0f,
+            cube_X,  cube_Y, -cube_z,  1.0f,  1.0f,  -1.0f,
+            cube_X, -cube_Y, -cube_z, 1.0f,  -1.0f,  -1.0f,
+            -cube_X, -cube_Y, -cube_z, -1.0f,  -1.0f,  -1.0f,
+            -cube_X,  cube_Y, -cube_z,  -1.0f,  1.0f,  -1.0f
+            };
+
+            // 2. 索引資料
+            unsigned int indices[] = {
+                0, 1, 3, 1, 2, 3, // Front
+                0, 1, 4, 1, 5, 4, // Right
+                4, 5, 7, 5, 6, 7, // Back
+                3, 2, 6, 7, 3, 6, // Left
+                0, 3, 4, 3, 7, 4, // Top
+                1, 2, 5, 2, 6, 5  // Bottom
+            };
+
+            // 3. 將 rawVertices 轉換為 vector<CG::Vertex>
+            std::vector<CG::Vertex> vertices;
+            for (int i = 0; i < 8; i++) {
+                CG::Vertex v;
+                // 填充位置 (前 3 個 float)
+                v.Position = glm::vec3(rawVertices[i * 6 + 0], rawVertices[i * 6 + 1], rawVertices[i * 6 + 2]);
+                // 填充法線 (後 3 個 float)
+                v.Normal = glm::vec3(rawVertices[i * 6 + 3], rawVertices[i * 6 + 4], rawVertices[i * 6 + 5]);
+
+                // 初始化其餘屬性為 0 (避免隨機值)
+                v.TexCoords = glm::vec2(0.0f);
+                v.Tangent = glm::vec3(0.0f);
+                v.Bitangent = glm::vec3(0.0f);
+                for (int j = 0; j < MAX_BONE_INFLUENCE; j++) {
+                    v.m_BoneIDs[j] = -1;
+                    v.m_Weights[j] = 0.0f;
+                }
+                vertices.push_back(v);
+            }
+
+            // 4. 將索引轉為 vector
+            std::vector<unsigned int> indicesVec(indices, indices + sizeof(indices) / sizeof(unsigned int));
+
+            // 3. 準備預設材質與空的貼圖列表
+            CG::Material material;
+            material.diffuse = glm::vec3(0.5f, 0.5f, 0.1f); // 設為紅色
+            std::vector<CG::MeshTexture> textures;
+
+            this->meshes.push_back(Mesh(vertices, indicesVec, textures, material));
+        }
 
 		/**
 		 * @brief 以 Instanced Rendering 繪製此模型的多個副本

@@ -77,8 +77,7 @@ namespace CG
         void update(glm::vec3 edgeA, glm::vec3 edgeB, float currentTime)
         {
             // 清除過期點
-            while (!points.empty() &&
-                currentTime - points.front().timestamp > duration)
+            while (!points.empty() && currentTime - points.front().timestamp > duration)
                 points.pop_front();
 
             // 移動距離不夠則不採樣（避免靜止時色帶過厚）
@@ -96,7 +95,7 @@ namespace CG
          * @brief 每幀呼叫：建立並繪製色帶
          * @note  請在 FBO Emissive Pass 中呼叫，使拖尾一併被 Bloom
          */
-        void draw(Shader* shader)
+        void Draw(Shader* shader)
         {
             if (points.size() < 2) return;
 

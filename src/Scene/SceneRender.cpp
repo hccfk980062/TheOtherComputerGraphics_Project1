@@ -6,6 +6,7 @@ namespace CG
     {
         viewportFramebuffer = new Framebuffer(width, height);
 
+        shaderProgram_particle = new Shader("ShaderPrograms/Particle_vertex.vert", "ShaderPrograms/Particle_fragement.frag");
 		shaderProgram_trail = new Shader("ShaderPrograms/Trail_vertex.vert", "ShaderPrograms/Trail_fragment.frag");
 		shaderProgram_worldObject = new Shader("ShaderPrograms/shader_worldObject_vertex.vert", "ShaderPrograms/shader_worldObject_fragment.frag");
         return true;
@@ -23,7 +24,8 @@ namespace CG
         scene->freeViewCamera.SetProjectionMatrix(viewportFramebuffer->width, viewportFramebuffer->height);
         scene->RenderObjects(shaderProgram_worldObject);
 
-        scene->RenderTrails(shaderProgram_trail, viewportFramebuffer);
+        scene->RenderTrails(shaderProgram_trail);
+        scene->RenderParticles(shaderProgram_particle);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);  // back to default
     }
     Framebuffer* SceneRenderer::getCurrentViewportFramebuffer()

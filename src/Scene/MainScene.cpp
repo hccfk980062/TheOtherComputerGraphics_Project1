@@ -5,10 +5,7 @@ namespace CG
 {
 	MainScene::MainScene()
 	{
-		photonBladeTrail.color = glm::vec3(1.0f,0.0f,0.0f);  // 對應自發光色
-		photonBladeTrail.duration = 0.3f;
 	}
-
 	MainScene::~MainScene()
 	{
 	}
@@ -39,6 +36,9 @@ namespace CG
 		model_Gundam[15] = new Model("objModels/Gundam_OriginRepositioned/uleftleg.obj", false, false);
 		model_Gundam[16] = new Model("objModels/Gundam_OriginRepositioned/urighthand.obj", false, false);
 		model_Gundam[17] = new Model("objModels/Gundam_OriginRepositioned/urightleg.obj", false, false);
+
+		//model_Hand[0] = new Model(5.0f, 3.0f, 1.0f);
+		//model_Hand[1] = new Model(0.9f, 2.5f, 0.9f);
 
 		model_photonBlade = new Model("objModels/PhotonBlade/untitled.fbx", false, true);
 		// 初始化場景物件
@@ -95,6 +95,38 @@ namespace CG
 		}
 
 		SetupSceneObject(model_photonBlade, "PhotonBlade", "PhotonBlade");
+		photonBladeTrail.color = glm::vec3(1.0f, 0.0f, 0.0f);  // 對應自發光色
+		photonBladeTrail.duration = 0.3f;
+
+
+		//Hand
+		/*
+		{
+
+			SetupSceneObject(model_Hand[0], "Hand", "Palm");
+			SetupSceneObject(model_Hand[1], "Hand", "Finger0_D", glm::vec3(-4, 3, 0));
+			SetupSceneObject(model_Hand[1], "Hand", "Finger0_U", glm::vec3(-4, 6, 0));
+			SetupSceneObject(model_Hand[1], "Hand", "Finger1_D", glm::vec3(-2, 3, 0));
+			SetupSceneObject(model_Hand[1], "Hand", "Finger1_U", glm::vec3(-2, 7, 0));
+			SetupSceneObject(model_Hand[1], "Hand", "Finger2_D", glm::vec3(0, 3, 0));
+			SetupSceneObject(model_Hand[1], "Hand", "Finger2_U", glm::vec3(0, 8, 0));
+			SetupSceneObject(model_Hand[1], "Hand", "Finger3_D", glm::vec3(2, 3, 0));
+			SetupSceneObject(model_Hand[1], "Hand", "Finger3_U", glm::vec3(2, 7, 0));
+			SetupSceneObject(model_Hand[1], "Hand", "Finger4_D", glm::vec3(4, 3, 0));
+			SetupSceneObject(model_Hand[1], "Hand", "Finger4_U", glm::vec3(4, 6, 0));
+
+			ReparentObject(FindObjectByName("Hand_Finger0_U"), FindObjectByName("Hand_Finger0_D"));
+			ReparentObject(FindObjectByName("Hand_Finger0_D"), FindObjectByName("Hand_Palm"));
+			ReparentObject(FindObjectByName("Hand_Finger1_U"), FindObjectByName("Hand_Finger1_D"));
+			ReparentObject(FindObjectByName("Hand_Finger1_D"), FindObjectByName("Hand_Palm"));
+			ReparentObject(FindObjectByName("Hand_Finger2_U"), FindObjectByName("Hand_Finger2_D"));
+			ReparentObject(FindObjectByName("Hand_Finger2_D"), FindObjectByName("Hand_Palm"));
+			ReparentObject(FindObjectByName("Hand_Finger3_U"), FindObjectByName("Hand_Finger3_D"));
+			ReparentObject(FindObjectByName("Hand_Finger3_D"), FindObjectByName("Hand_Palm"));
+			ReparentObject(FindObjectByName("Hand_Finger4_U"), FindObjectByName("Hand_Finger4_D"));
+			ReparentObject(FindObjectByName("Hand_Finger4_D"), FindObjectByName("Hand_Palm"));
+		}
+		*/
 		return true;
 	}
 	std::vector<SceneObject*> MainScene::GetObjectsInAnimationGroup(std::string groupName)
@@ -181,7 +213,7 @@ namespace CG
 			model->DrawInstanced(*worldObjectShader, matrices);
 	}
 
-	void MainScene::RenderTrails(Shader* trailShader, Framebuffer* trailFramebuffer)
+	void MainScene::RenderTrails(Shader* trailShader)
 	{
 		trailShader->use();
 
@@ -194,10 +226,31 @@ namespace CG
 		glm::vec3 worldEdgeB = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(0.5f, 0.0f, 0.0f, 1.0f));
 		photonBladeTrail.update(worldEdgeA, worldEdgeB, currentTime);
 
-		// 2. FBO Emissive Pass：先畫場景，再畫 trail（一起被 Bloom）
-		glBindFramebuffer(GL_FRAMEBUFFER, trailFramebuffer->fbo);
-		//FindObjectByName("PhotonBlade_PhotonBlade")->model->DrawInstanced(*trailShader, std::vector < glm::mat4 >{FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix()});
-		photonBladeTrail.draw(trailShader);  // ← 在同一個 FBO 內
+		photonBladeTrail.Draw(trailShader);  // ← 在同一個 FBO 內
+	}
+
+	void MainScene::RenderParticles(Shader* particleShader)
+	{
+		particleShader->use();
+
+		// view / projection 只需上傳一次
+		particleShader->setUnifMat4("view", freeViewCamera.GetViewMatrix());
+		particleShader->setUnifMat4("projection", freeViewCamera.GetProjectionMatrix());
+
+		float currentTime = (float)glfwGetTime();
+		float dt = currentTime - lastTime;
+
+		lastTime = currentTime;
+		glm::vec3 worldEdgeA = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(0.5f, -0.15f, 0.0f, 1.0f));
+		glm::vec3 worldEdgeB = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(10.0f, -0.15f, 0.0f, 1.0f));
+		
+
+		glm::vec3 worldPos = glm::mix(worldEdgeA, worldEdgeB, (rand() % 100) / 100.f);
+		
+		photonBladePlasma.emit(worldPos,3);
+		photonBladePlasma.update(dt);
+
+		photonBladePlasma.Draw();
 	}
 
 	void MainScene::CollectInstances(SceneObject* obj, std::unordered_map<Model*, std::vector<glm::mat4>>& outMap)

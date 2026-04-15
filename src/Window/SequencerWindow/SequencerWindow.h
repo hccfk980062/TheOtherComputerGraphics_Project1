@@ -188,7 +188,7 @@ namespace CG
 		double timeAccumulated = 0;
 		int selectedGroupIndex = -1;
 
-		bool transformTabOpen[4] = {true};
+		bool transformTabOpen[8] = {true};
 
 		KeyframeData* selectedKeyframe = nullptr;
 		AnimationTrack* selectedAnimationTrack = nullptr;

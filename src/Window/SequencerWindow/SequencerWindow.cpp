@@ -114,7 +114,7 @@ namespace CG
 
                 // ── Export / Import window  ─────────────────────────────────────────
                // 
-                if (ImGuiFileDialog::Instance()->Display("FileDialog_ExportALL"))
+                if (ImGuiFileDialog::Instance()->Display("FileDialog_ExportALL", 32, ImVec2(300, 200)))
                 {
                     if (ImGuiFileDialog::Instance()->IsOk())
                     {
@@ -132,7 +132,7 @@ namespace CG
                     // close
                     ImGuiFileDialog::Instance()->Close();
                 }
-                if (ImGuiFileDialog::Instance()->Display("FileDialog_ImportALL"))
+                if (ImGuiFileDialog::Instance()->Display("FileDialog_ImportALL", 32, ImVec2(300, 200)))
                 {
                     if (ImGuiFileDialog::Instance()->IsOk())
                     {
@@ -146,7 +146,7 @@ namespace CG
                     ImGuiFileDialog::Instance()->Close();
                 }
 
-                if (ImGuiFileDialog::Instance()->Display("FileDialog_ExportSpecific"))
+                if (ImGuiFileDialog::Instance()->Display("FileDialog_ExportSpecific", 32, ImVec2(300,200)))
                 {
                     if (ImGuiFileDialog::Instance()->IsOk())
                     {
@@ -164,7 +164,7 @@ namespace CG
                     // close
                     ImGuiFileDialog::Instance()->Close();
                 }
-                if (ImGuiFileDialog::Instance()->Display("FileDialog_ImportSpecific"))
+                if (ImGuiFileDialog::Instance()->Display("FileDialog_ImportSpecific", 32, ImVec2(300, 200)))
                 {
                     if (ImGuiFileDialog::Instance()->IsOk())
                     {

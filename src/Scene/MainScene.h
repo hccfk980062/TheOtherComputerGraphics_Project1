@@ -10,11 +10,10 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include "FrameBuffer/Framebuffer.h"
-
 #include "Model/ModelLoader.h"
 #include "Scene/Transform.h"
 
+#include "ParticleEffects/ParticleRenderer.h"
 #include "ParticleEffects/TrailRenderer.h"
 
 #include "Camera/Camera.h"
@@ -28,7 +27,8 @@ namespace CG
 
 		auto Initialize() -> bool;
 		void RenderObjects(Shader* worldObjectShader);
-		void RenderTrails(Shader* trailShader, Framebuffer* trailFramebuffer);
+		void RenderParticles(Shader* particleShader);
+		void RenderTrails(Shader* trailShader);
 		Camera freeViewCamera;
 		//物件管理
 		std::vector<SceneObject*>ObjectList;
@@ -38,6 +38,7 @@ namespace CG
 		int objectCount = 0;
 
 		TrailRenderer photonBladeTrail;
+		ParticleRenderer photonBladePlasma = ParticleRenderer(16);
 
 		SceneObject* FindObjectByName(std::string objectName);
 		std::vector<SceneObject*> GetObjectsInAnimationGroup(std::string groupName);
@@ -48,6 +49,9 @@ namespace CG
 		Model* model_Gundam[18];
 		Model* model_photonBlade;
 
+
+		float lastTime = (float)glfwGetTime();
+		//Model* model_Hand[2];
 
 		void CollectInstances(SceneObject* obj,std::unordered_map<Model*, std::vector<glm::mat4>>& outMap);
 
