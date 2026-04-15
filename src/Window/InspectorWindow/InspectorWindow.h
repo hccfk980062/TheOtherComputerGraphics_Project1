@@ -24,5 +24,6 @@ namespace CG
 		// UI helpers
 		void DisplayTransformPanel();
 		void DisplayCameraPanel();
+		void DisplayIKPanel();
 	};
 }

@@ -18,53 +18,50 @@ namespace CG
 		freeViewCamera.configureLookAt(glm::vec3(1, 0, 0), glm::vec3(0, 1, 0));
 
 
-		model_Gundam[0] = new Model("objModels/Gundam_OriginRepositioned/back.obj", false, false);
-		model_Gundam[1] = new Model("objModels/Gundam_OriginRepositioned/body.obj", false, false);
-		model_Gundam[2] = new Model("objModels/Gundam_OriginRepositioned/dbody.obj", false, false);
-		model_Gundam[3] = new Model("objModels/Gundam_OriginRepositioned/dlefthand.obj", false, false);
-		model_Gundam[4] = new Model("objModels/Gundam_OriginRepositioned/dleftleg.obj", false, false);
-		model_Gundam[5] = new Model("objModels/Gundam_OriginRepositioned/drighthand.obj", false, false);
-		model_Gundam[6] = new Model("objModels/Gundam_OriginRepositioned/drightleg.obj", false, false);
-		model_Gundam[7] = new Model("objModels/Gundam_OriginRepositioned/head.obj", false, false);
-		model_Gundam[8] = new Model("objModels/Gundam_OriginRepositioned/leftfoot.obj", false, false);
-		model_Gundam[9] = new Model("objModels/Gundam_OriginRepositioned/lefthand.obj", false, false);
-		model_Gundam[10] = new Model("objModels/Gundam_OriginRepositioned/lshouder.obj", false, false);
-		model_Gundam[11] = new Model("objModels/Gundam_OriginRepositioned/rightfoot.obj", false, false);
-		model_Gundam[12] = new Model("objModels/Gundam_OriginRepositioned/righthand.obj", false, false);
-		model_Gundam[13] = new Model("objModels/Gundam_OriginRepositioned/rshouder.obj", false, false);
-		model_Gundam[14] = new Model("objModels/Gundam_OriginRepositioned/ulefthand.obj", false, false);
-		model_Gundam[15] = new Model("objModels/Gundam_OriginRepositioned/uleftleg.obj", false, false);
-		model_Gundam[16] = new Model("objModels/Gundam_OriginRepositioned/urighthand.obj", false, false);
-		model_Gundam[17] = new Model("objModels/Gundam_OriginRepositioned/urightleg.obj", false, false);
+		model_Gundam[0]  = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/back.obj",       false, false);
+		model_Gundam[1]  = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/body.obj",       false, false);
+		model_Gundam[2]  = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/dbody.obj",      false, false);
+		model_Gundam[3]  = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/dlefthand.obj",  false, false);
+		model_Gundam[4]  = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/dleftleg.obj",   false, false);
+		model_Gundam[5]  = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/drighthand.obj", false, false);
+		model_Gundam[6]  = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/drightleg.obj",  false, false);
+		model_Gundam[7]  = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/head.obj",       false, false);
+		model_Gundam[8]  = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/leftfoot.obj",   false, false);
+		model_Gundam[9]  = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/lefthand.obj",   false, false);
+		model_Gundam[10] = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/lshouder.obj",   false, false);
+		model_Gundam[11] = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/rightfoot.obj",  false, false);
+		model_Gundam[12] = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/righthand.obj",  false, false);
+		model_Gundam[13] = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/rshouder.obj",   false, false);
+		model_Gundam[14] = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/ulefthand.obj",  false, false);
+		model_Gundam[15] = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/uleftleg.obj",   false, false);
+		model_Gundam[16] = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/urighthand.obj", false, false);
+		model_Gundam[17] = std::make_unique<Model>("objModels/Gundam_OriginRepositioned/urightleg.obj",  false, false);
 
-		//model_Hand[0] = new Model(5.0f, 3.0f, 1.0f);
-		//model_Hand[1] = new Model(0.9f, 2.5f, 0.9f);
-
-		model_photonBlade = new Model("objModels/PhotonBlade/untitled.fbx", false, true);
+		model_photonBlade = std::make_unique<Model>("objModels/PhotonBlade/untitled.fbx", false, true);
 		// 初始化場景物件
 
 		for (int i = 0; i < 4; i++)
 		{
 			std::string gundamSerialNum = "Gundam_" + std::to_string(i);
 
-			SetupSceneObject(model_Gundam[0], gundamSerialNum , "Back", glm::vec3(0, 0, -3.6));//
-			SetupSceneObject(model_Gundam[1], gundamSerialNum , "Body", glm::vec3(0, 0, 0));//
-			SetupSceneObject(model_Gundam[2], gundamSerialNum, "DBody", glm::vec3(0, -4.95, -0.8));//
-			SetupSceneObject(model_Gundam[3], gundamSerialNum, "DLeftHand", glm::vec3(4.3, -4.2, -0.67));//
-			SetupSceneObject(model_Gundam[4], gundamSerialNum, "DLeftLeg", glm::vec3(1.93, -15.13, -1.93));//
-			SetupSceneObject(model_Gundam[5], gundamSerialNum, "DRightHand", glm::vec3(-4.57, -4.25, -0.58));//
-			SetupSceneObject(model_Gundam[6], gundamSerialNum, "DRightLeg", glm::vec3(-1.78, -15.13, -1.73));//
-			SetupSceneObject(model_Gundam[7], gundamSerialNum, "Head", glm::vec3(0, 3.65, 0.58));//
-			SetupSceneObject(model_Gundam[8], gundamSerialNum, "LeftFoot", glm::vec3(2, -18.32, -1.5));//
-			SetupSceneObject(model_Gundam[9], gundamSerialNum, "LeftHand", glm::vec3(4.3, -8.4, -0.53));//
-			SetupSceneObject(model_Gundam[10], gundamSerialNum, "LeftShouder", glm::vec3(4.22, 0.82, -0.55));//
-			SetupSceneObject(model_Gundam[11], gundamSerialNum, "RightFoot", glm::vec3(-2, -18.32, -1.5));//
-			SetupSceneObject(model_Gundam[12], gundamSerialNum, "RightHand", glm::vec3(-4.6, -8.76, -0.52));//
-			SetupSceneObject(model_Gundam[13], gundamSerialNum, "RightShouder", glm::vec3(-4.22, 0.82, -0.55));//
-			SetupSceneObject(model_Gundam[14], gundamSerialNum, "ULeftHand", glm::vec3(4, -0.75, -0.65));//
-			SetupSceneObject(model_Gundam[15], gundamSerialNum, "ULeftLeg", glm::vec3(1.93, -8.27, -1.3));//
-			SetupSceneObject(model_Gundam[16], gundamSerialNum, "URightHand", glm::vec3(-4.34, -0.62, -0.58));//
-			SetupSceneObject(model_Gundam[17], gundamSerialNum, "URightLeg", glm::vec3(-1.93, -8.27, -1.3));//
+			SetupSceneObject(model_Gundam[0].get(),  gundamSerialNum, "Back",        glm::vec3(0, 0, -3.6));
+			SetupSceneObject(model_Gundam[1].get(),  gundamSerialNum, "Body",        glm::vec3(0, 0, 0));
+			SetupSceneObject(model_Gundam[2].get(),  gundamSerialNum, "DBody",       glm::vec3(0, -4.95, -0.8));
+			SetupSceneObject(model_Gundam[3].get(),  gundamSerialNum, "DLeftHand",   glm::vec3(4.3, -4.2, -0.67));
+			SetupSceneObject(model_Gundam[4].get(),  gundamSerialNum, "DLeftLeg",    glm::vec3(1.93, -15.13, -1.93));
+			SetupSceneObject(model_Gundam[5].get(),  gundamSerialNum, "DRightHand",  glm::vec3(-4.57, -4.25, -0.58));
+			SetupSceneObject(model_Gundam[6].get(),  gundamSerialNum, "DRightLeg",   glm::vec3(-1.78, -15.13, -1.73));
+			SetupSceneObject(model_Gundam[7].get(),  gundamSerialNum, "Head",        glm::vec3(0, 3.65, 0.58));
+			SetupSceneObject(model_Gundam[8].get(),  gundamSerialNum, "LeftFoot",    glm::vec3(2, -18.32, -1.5));
+			SetupSceneObject(model_Gundam[9].get(),  gundamSerialNum, "LeftHand",    glm::vec3(4.3, -8.4, -0.53));
+			SetupSceneObject(model_Gundam[10].get(), gundamSerialNum, "LeftShouder", glm::vec3(4.22, 0.82, -0.55));
+			SetupSceneObject(model_Gundam[11].get(), gundamSerialNum, "RightFoot",   glm::vec3(-2, -18.32, -1.5));
+			SetupSceneObject(model_Gundam[12].get(), gundamSerialNum, "RightHand",   glm::vec3(-4.6, -8.76, -0.52));
+			SetupSceneObject(model_Gundam[13].get(), gundamSerialNum, "RightShouder",glm::vec3(-4.22, 0.82, -0.55));
+			SetupSceneObject(model_Gundam[14].get(), gundamSerialNum, "ULeftHand",   glm::vec3(4, -0.75, -0.65));
+			SetupSceneObject(model_Gundam[15].get(), gundamSerialNum, "ULeftLeg",    glm::vec3(1.93, -8.27, -1.3));
+			SetupSceneObject(model_Gundam[16].get(), gundamSerialNum, "URightHand",  glm::vec3(-4.34, -0.62, -0.58));
+			SetupSceneObject(model_Gundam[17].get(), gundamSerialNum, "URightLeg",   glm::vec3(-1.93, -8.27, -1.3));
 
 			//R_Leg
 			ReparentObject(FindObjectByName(gundamSerialNum + "_RightFoot"), FindObjectByName(gundamSerialNum + "_DRightLeg"));
@@ -94,40 +91,84 @@ namespace CG
 			ReparentObject(FindObjectByName(gundamSerialNum + "_ULeftLeg"), FindObjectByName(gundamSerialNum + "_DBody"));
 		}
 
-		SetupSceneObject(model_photonBlade, "PhotonBlade", "PhotonBlade");
+		SetupSceneObject(model_photonBlade.get(), "PhotonBlade", "PhotonBlade");
 		photonBladeTrail.color = glm::vec3(1.0f, 0.0f, 0.0f);  // 對應自發光色
 		photonBladeTrail.duration = 0.3f;
 
+		InitIKChains();
 
-		//Hand
-		/*
-		{
-
-			SetupSceneObject(model_Hand[0], "Hand", "Palm");
-			SetupSceneObject(model_Hand[1], "Hand", "Finger0_D", glm::vec3(-4, 3, 0));
-			SetupSceneObject(model_Hand[1], "Hand", "Finger0_U", glm::vec3(-4, 6, 0));
-			SetupSceneObject(model_Hand[1], "Hand", "Finger1_D", glm::vec3(-2, 3, 0));
-			SetupSceneObject(model_Hand[1], "Hand", "Finger1_U", glm::vec3(-2, 7, 0));
-			SetupSceneObject(model_Hand[1], "Hand", "Finger2_D", glm::vec3(0, 3, 0));
-			SetupSceneObject(model_Hand[1], "Hand", "Finger2_U", glm::vec3(0, 8, 0));
-			SetupSceneObject(model_Hand[1], "Hand", "Finger3_D", glm::vec3(2, 3, 0));
-			SetupSceneObject(model_Hand[1], "Hand", "Finger3_U", glm::vec3(2, 7, 0));
-			SetupSceneObject(model_Hand[1], "Hand", "Finger4_D", glm::vec3(4, 3, 0));
-			SetupSceneObject(model_Hand[1], "Hand", "Finger4_U", glm::vec3(4, 6, 0));
-
-			ReparentObject(FindObjectByName("Hand_Finger0_U"), FindObjectByName("Hand_Finger0_D"));
-			ReparentObject(FindObjectByName("Hand_Finger0_D"), FindObjectByName("Hand_Palm"));
-			ReparentObject(FindObjectByName("Hand_Finger1_U"), FindObjectByName("Hand_Finger1_D"));
-			ReparentObject(FindObjectByName("Hand_Finger1_D"), FindObjectByName("Hand_Palm"));
-			ReparentObject(FindObjectByName("Hand_Finger2_U"), FindObjectByName("Hand_Finger2_D"));
-			ReparentObject(FindObjectByName("Hand_Finger2_D"), FindObjectByName("Hand_Palm"));
-			ReparentObject(FindObjectByName("Hand_Finger3_U"), FindObjectByName("Hand_Finger3_D"));
-			ReparentObject(FindObjectByName("Hand_Finger3_D"), FindObjectByName("Hand_Palm"));
-			ReparentObject(FindObjectByName("Hand_Finger4_U"), FindObjectByName("Hand_Finger4_D"));
-			ReparentObject(FindObjectByName("Hand_Finger4_D"), FindObjectByName("Hand_Palm"));
-		}
-		*/
 		return true;
+	}
+
+	// ── IK 鏈初始化 ────────────────────────────────────────────────────────────
+	// 為每個 Gundam（0~3）建立四條鏈：右臂、左臂、右腿、左腿
+	void MainScene::InitIKChains()
+	{
+		ikChains.clear();
+
+		// 輔助 lambda：依名稱串接關節，若任一節點不存在則跳過
+		auto MakeChain = [&](const std::string& chainName,
+		                     const std::vector<std::string>& names) -> bool
+		{
+			IKChain chain;
+			chain.name = chainName;
+			for (const auto& n : names)
+			{
+				SceneObject* obj = FindObjectByName(n);
+				if (!obj) { return false; }
+				chain.joints.push_back(obj);
+			}
+			// 以當前 T-pose 計算骨骼長度，並將目標初始化到末端效應器世界座標
+			chain.ComputeBoneLengths();
+			chain.target = glm::vec3(chain.joints.back()->GetWorldMatrix()[3]);
+			ikChains.push_back(std::move(chain));
+			return true;
+		};
+
+		for (int i = 0; i < 4; i++)
+		{
+			std::string g = "Gundam_" + std::to_string(i) + "_";
+
+			// 右臂：RightShouder → URightHand → DRightHand → RightHand
+			MakeChain("Gundam_" + std::to_string(i) + " R_Arm",
+			{
+				g + "RightShouder",
+				g + "URightHand",
+				g + "DRightHand",
+				g + "RightHand"
+			});
+
+			// 左臂：LeftShouder → ULeftHand → DLeftHand → LeftHand
+			MakeChain("Gundam_" + std::to_string(i) + " L_Arm",
+			{
+				g + "LeftShouder",
+				g + "ULeftHand",
+				g + "DLeftHand",
+				g + "LeftHand"
+			});
+
+			// 右腿：URightLeg → DRightLeg → RightFoot
+			MakeChain("Gundam_" + std::to_string(i) + " R_Leg",
+			{
+				g + "URightLeg",
+				g + "DRightLeg",
+				g + "RightFoot"
+			});
+
+			// 左腿：ULeftLeg → DLeftLeg → LeftFoot
+			MakeChain("Gundam_" + std::to_string(i) + " L_Leg",
+			{
+				g + "ULeftLeg",
+				g + "DLeftLeg",
+				g + "LeftFoot"
+			});
+		}
+	}
+
+	void MainScene::SolveIK()
+	{
+		for (auto& chain : ikChains)
+			IKSolver::Solve(chain);
 	}
 	std::vector<SceneObject*> MainScene::GetObjectsInAnimationGroup(std::string groupName)
 	{
@@ -174,7 +215,7 @@ namespace CG
 		glm::mat4 newParentWorld = newParent->GetWorldMatrix();
 		glm::mat4 newLocalMatrix = glm::inverse(newParentWorld) * oldWorldMatrix;
 
-		// 將 mat4 分解回 Transform / Rotat e/ Scale，寫入 local transform
+		// 將 mat4 分解回 Transform / Rotate / Scale，寫入 local transform
 		// 提取 Translation
 		obj->transform.position = glm::vec3(newLocalMatrix[3]);
 
@@ -222,8 +263,8 @@ namespace CG
 		trailShader->setUnifMat4("projection", freeViewCamera.GetProjectionMatrix());
 
 		float currentTime = (float)glfwGetTime();
-		glm::vec3 worldEdgeA = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(10.0f, 0.0f, 0.0f, 1.0f));
-		glm::vec3 worldEdgeB = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(0.5f, 0.0f, 0.0f, 1.0f));
+		glm::vec3 worldEdgeA = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(10.0f, -0.2f, 0.0f, 1.0f));
+		glm::vec3 worldEdgeB = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(0.5f, -0.2f, 0.0f, 1.0f));
 		photonBladeTrail.update(worldEdgeA, worldEdgeB, currentTime);
 
 		photonBladeTrail.Draw(trailShader);  // ← 在同一個 FBO 內
@@ -241,8 +282,8 @@ namespace CG
 		float dt = currentTime - lastTime;
 
 		lastTime = currentTime;
-		glm::vec3 worldEdgeA = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(0.5f, -0.15f, 0.0f, 1.0f));
-		glm::vec3 worldEdgeB = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(10.0f, -0.15f, 0.0f, 1.0f));
+		glm::vec3 worldEdgeA = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(0.5f, -0.2f, 0.0f, 1.0f));
+		glm::vec3 worldEdgeB = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(10.0f, -0.2f, 0.0f, 1.0f));
 		
 
 		glm::vec3 worldPos = glm::mix(worldEdgeA, worldEdgeB, (rand() % 100) / 100.f);

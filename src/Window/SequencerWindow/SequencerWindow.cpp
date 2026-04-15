@@ -234,24 +234,6 @@ namespace CG
                         }
                         i++;
                     }
-                    if (ImGuiFileDialog::Instance()->Display("FileDialog_ExportGroup"))
-                    {
-                        if (ImGuiFileDialog::Instance()->IsOk())
-                        {
-                            std::string path = ImGuiFileDialog::Instance()->GetFilePathName();
-                            ExportSpecificGroupToJson(selectedGroupIndex, path);
-                        }
-                        ImGuiFileDialog::Instance()->Close();
-                    }
-                    if (ImGuiFileDialog::Instance()->Display("FileDialog_ImportGroup"))
-                    {
-                        if (ImGuiFileDialog::Instance()->IsOk())
-                        {
-                            std::string path = ImGuiFileDialog::Instance()->GetFilePathName();
-                            ImportSpecificGroupFromJson(selectedGroupIndex, path);
-                        }
-                        ImGuiFileDialog::Instance()->Close();
-                    }
                     if (ImGui::BeginPopup("KeyframeEditor"))
                     {
                         if (selectedKeyframe)

@@ -28,7 +28,7 @@ namespace CG
 			vertexCode = vShaderStream.str();
 			fragmentCode = fShaderStream.str();
 		}
-		catch (std::ifstream::failure e)
+		catch (const std::ifstream::failure& e)
 		{
 			std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ at " << e.what() << std::endl;
 		}
@@ -36,12 +36,11 @@ namespace CG
 		const char* fShaderCode = fragmentCode.c_str();
 
 		// 2. compile shaders
-		unsigned int vertex, fragment;
 		int success;
 		char infoLog[512];
 
 		// vertex Shader
-		vertex = glCreateShader(GL_VERTEX_SHADER);
+		unsigned int vertex = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vertex, 1, &vShaderCode, NULL);
 		glCompileShader(vertex);
 		// print compile errors if any
@@ -51,7 +50,6 @@ namespace CG
 			glGetShaderInfoLog(vertex, 512, NULL, infoLog);
 			std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
 		};
-		// similiar for Fragment Shader
 		// fragment shader
 		unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 		glShaderSource(fragmentShader, 1, &fShaderCode, NULL);

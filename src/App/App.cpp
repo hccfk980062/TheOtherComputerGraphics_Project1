@@ -50,7 +50,6 @@ namespace CG
 		if (glew_err != GLEW_OK)
 		{
 			throw std::runtime_error(std::string("Error initializing GLEW, error: ") + (const char*)glewGetErrorString(glew_err));
-			return false;
 		}
 
 		// Setup Dear ImGui context
@@ -70,29 +69,28 @@ namespace CG
 
 		glfwSetWindowUserPointer(mainWindow, this);
 
-		sceneRenderer = new SceneRenderer();
+		sceneRenderer = std::make_unique<SceneRenderer>();
 		sceneRenderer->Initialize(1280, 720);
 
-		viewportWindow = new ViewportWindow();
+		viewportWindow = std::make_unique<ViewportWindow>();
 		viewportWindow->Initialize();
 
-		inspectorWindow = new InspectorWindow();
+		inspectorWindow = std::make_unique<InspectorWindow>();
 		inspectorWindow->Initialize();
 
-		hierarchyWindow = new HierarchyWindow();
+		hierarchyWindow = std::make_unique<HierarchyWindow>();
 		hierarchyWindow->Initialize();
 
-		sequencerWindow = new SequencerWindow();
+		sequencerWindow = std::make_unique<SequencerWindow>();
 		sequencerWindow->Initialize();
 
-		mainScene = new MainScene();
+		mainScene = std::make_unique<MainScene>();
 		mainScene->Initialize();
 
-		inspectorWindow->SetTargetScene(mainScene);
-		hierarchyWindow->SetTargetScene(mainScene);
-		sequencerWindow -> SetTargetScene(mainScene);
+		inspectorWindow->SetTargetScene(mainScene.get());
+		hierarchyWindow->SetTargetScene(mainScene.get());
+		sequencerWindow->SetTargetScene(mainScene.get());
 		printf("Project Source Header Version: %s (%d)\n", IMGUI_VERSION, IMGUI_VERSION_NUM);
-		IMGUI_CHECKVERSION();
 		// Initialization done
 		return true;
 	}
@@ -114,7 +112,7 @@ namespace CG
 			viewportWindow->SyncFramebufferSize(sceneRenderer->getCurrentViewportFramebuffer());
 
 			// ── Step 1: Render 3D scene → FBO ────────────────────────────────────
-			sceneRenderer->RenderScene(mainScene);
+			sceneRenderer->RenderScene(mainScene.get());
 
 			// ── Step 2: 清空主視窗（作為 ImGui 的背景） ───────────────────────────
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -133,7 +131,7 @@ namespace CG
 			BeginDockspace();
 
 			// UpdateScreen 內部會記錄本幀的 Viewport 尺寸，供下一幀 Step 0 使用
-			viewportWindow->UpdateScreen(mainScene, sceneRenderer->getCurrentViewportFramebuffer());
+			viewportWindow->UpdateScreen(mainScene.get(), sceneRenderer->getCurrentViewportFramebuffer());
 			inspectorWindow->Display();
 			hierarchyWindow->Display();
 			sequencerWindow->Display();
@@ -158,6 +156,9 @@ namespace CG
 
 	void App::Update(double dt)
 	{
+		// IK 解算：在動畫系統更新後（上一幀結尾）、渲染之前執行
+		if (mainScene)
+			mainScene->SolveIK();
 	}
 
 	void App::BeginDockspace()

@@ -1,6 +1,7 @@
 #include "InspectorWindow.h"
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <string>
 
 namespace CG
 {
@@ -41,6 +42,11 @@ namespace CG
 					if (ImGui::BeginTabItem("Camera"))
 					{
 						DisplayCameraPanel();
+						ImGui::EndTabItem();
+					}
+					if (ImGui::BeginTabItem("IK"))
+					{
+						DisplayIKPanel();
 						ImGui::EndTabItem();
 					}
 				}
@@ -95,11 +101,6 @@ namespace CG
 		}
 
 		SceneObject* selectedObject = targetScene->selectedObject;
-		if (!selectedObject)
-		{
-			ImGui::TextColored(ImVec4(1, 0, 0, 1), "Invalid object");
-			return;
-		}
 
 		// Directly edit object transform
 		ImGui::TextDisabled("Position");
@@ -109,9 +110,13 @@ namespace CG
 		}
 
 		ImGui::TextDisabled("Rotation (Euler Angles)");
-		if(ImGui::InputFloat3("##Rotation", glm::value_ptr(selectedObject->transform.rotation)))
 		{
-			selectedObject->MarkDirty();
+			glm::vec3 euler = glm::degrees(glm::eulerAngles(selectedObject->transform.rotation));
+			if (ImGui::DragFloat3("##Rotation", glm::value_ptr(euler), 0.5f))
+			{
+				selectedObject->transform.rotation = glm::quat(glm::radians(euler));
+				selectedObject->MarkDirty();
+			}
 		}
 
 		ImGui::TextDisabled("Scale");
@@ -124,7 +129,7 @@ namespace CG
 		if (ImGui::Button("Reset Transform", ImVec2(-1, 0)))
 		{
 			selectedObject->transform.position = glm::vec3(0.0f);
-			selectedObject->transform.rotation = glm::vec3(0.0f);
+			selectedObject->transform.rotation = glm::quat();
 			selectedObject->transform.scale = glm::vec3(1.0f);
 			selectedObject->MarkDirty();
 		}
@@ -138,5 +143,93 @@ namespace CG
 		ImGui::Text("Row 1: (%.2f, %.2f, %.2f, %.2f)", model[1][0], model[1][1], model[1][2], model[1][3]);
 		ImGui::Text("Row 2: (%.2f, %.2f, %.2f, %.2f)", model[2][0], model[2][1], model[2][2], model[2][3]);
 		ImGui::Text("Row 3: (%.2f, %.2f, %.2f, %.2f)", model[3][0], model[3][1], model[3][2], model[3][3]);
+	}
+
+	// ─── IK Panel ──────────────────────────────────────────────────────────────
+	void InspectorWindow::DisplayIKPanel()
+	{
+		if (!targetScene)
+			return;
+
+		auto& chains = targetScene->ikChains;
+		if (chains.empty())
+		{
+			ImGui::TextDisabled("No IK chains defined.");
+			return;
+		}
+
+		ImGui::Text("Inverse Kinematics (FABRIK)");
+		ImGui::Separator();
+
+		for (int idx = 0; idx < (int)chains.size(); idx++)
+		{
+			IKChain& chain = chains[idx];
+
+			// 折疊標題列，包含 enabled checkbox
+			std::string headerLabel = chain.name + "##header" + std::to_string(idx);
+			bool treeOpen = ImGui::TreeNodeEx(headerLabel.c_str(),
+				ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_SpanAvailWidth);
+
+			// 右側顯示 Enable 開關（與 TreeNode 同列）
+			ImGui::SameLine(ImGui::GetContentRegionAvail().x - 10.0f);
+			std::string checkId = "##en" + std::to_string(idx);
+			ImGui::Checkbox(checkId.c_str(), &chain.enabled);
+
+			if (treeOpen)
+			{
+				ImGui::PushID(idx);
+
+				// ── 目標座標 ───────────────────────────────────────────────────
+				ImGui::TextDisabled("Target (World)");
+				ImGui::DragFloat3("##Target", glm::value_ptr(chain.target), 0.05f);
+
+				// 快速按鈕：將目標重設到末端效應器當前世界位置
+				if (ImGui::Button("Snap to End Effector"))
+				{
+					if (!chain.joints.empty())
+						chain.target = glm::vec3(chain.joints.back()->GetWorldMatrix()[3]);
+				}
+
+				ImGui::Spacing();
+
+				// ── 解算參數 ───────────────────────────────────────────────────
+				ImGui::TextDisabled("Solver Settings");
+				ImGui::SliderInt("Max Iterations", &chain.maxIter, 1, 50);
+				ImGui::DragFloat("Tolerance",      &chain.tolerance, 0.001f, 0.001f, 1.0f, "%.3f");
+
+				// ── 骨骼資訊（唯讀） ───────────────────────────────────────────
+				ImGui::Spacing();
+				ImGui::TextDisabled("Chain Info");
+				ImGui::Text("Joints : %d", (int)chain.joints.size());
+				ImGui::Text("Reach  : %.2f", chain.totalLength);
+
+				if (!chain.joints.empty())
+				{
+					glm::vec3 endWorld = glm::vec3(chain.joints.back()->GetWorldMatrix()[3]);
+					float distToTarget = glm::length(chain.target - endWorld);
+					ImGui::Text("Dist to target: %.2f", distToTarget);
+				}
+
+				ImGui::Spacing();
+				ImGui::TextDisabled("Joint Chain");
+				for (int j = 0; j < (int)chain.joints.size(); j++)
+				{
+					bool isEnd = (j == (int)chain.joints.size() - 1);
+					ImGui::Text("  [%d] %s%s", j,
+						chain.joints[j]->objectName.c_str(),
+						isEnd ? "  <-- end effector" : "");
+				}
+
+				// ── 重新計算骨骼長度（如手動調整過 T-pose） ────────────────────
+				ImGui::Spacing();
+				if (ImGui::Button("Recompute Bone Lengths"))
+					chain.ComputeBoneLengths();
+
+				ImGui::PopID();
+				ImGui::TreePop();
+			}
+
+			ImGui::Spacing();
+		}
 	}
 }

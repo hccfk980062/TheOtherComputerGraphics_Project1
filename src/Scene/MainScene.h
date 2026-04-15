@@ -17,6 +17,7 @@
 #include "ParticleEffects/TrailRenderer.h"
 
 #include "Camera/Camera.h"
+#include "IK/IKSolver.h"
 namespace CG
 {
 	class MainScene
@@ -40,15 +41,20 @@ namespace CG
 		TrailRenderer photonBladeTrail;
 		ParticleRenderer photonBladePlasma = ParticleRenderer(16);
 
+		// ── Inverse Kinematics ────────────────────────────────────────────────
+		std::vector<IKChain> ikChains;
+		void SolveIK();
+
 		SceneObject* FindObjectByName(std::string objectName);
 		std::vector<SceneObject*> GetObjectsInAnimationGroup(std::string groupName);
-		
-		void MainScene::ReparentObject(SceneObject* obj, SceneObject* newParent);
+
+		void ReparentObject(SceneObject* obj, SceneObject* newParent);
 
 	private:
-		Model* model_Gundam[18];
-		Model* model_photonBlade;
+		void InitIKChains();
 
+		std::unique_ptr<Model> model_Gundam[18];
+		std::unique_ptr<Model> model_photonBlade;
 
 		float lastTime = (float)glfwGetTime();
 		//Model* model_Hand[2];

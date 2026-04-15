@@ -33,13 +33,13 @@ namespace CG
 	private:
 		GLFWwindow* mainWindow;
 
-		InspectorWindow* inspectorWindow;
-		ViewportWindow* viewportWindow;
-		HierarchyWindow* hierarchyWindow;
-		SequencerWindow* sequencerWindow;
+		std::unique_ptr<InspectorWindow> inspectorWindow;
+		std::unique_ptr<ViewportWindow>  viewportWindow;
+		std::unique_ptr<HierarchyWindow> hierarchyWindow;
+		std::unique_ptr<SequencerWindow> sequencerWindow;
 
-		SceneRenderer* sceneRenderer;
-		MainScene* mainScene;
+		std::unique_ptr<SceneRenderer> sceneRenderer;
+		std::unique_ptr<MainScene>     mainScene;
 
 		double timeNow = 0;
 		double timeLast = 0;
@@ -48,7 +48,7 @@ namespace CG
 	public:
 		MainScene* GetMainScene() const
 		{
-			return mainScene;
+			return mainScene.get();
 		}
 	};
 }

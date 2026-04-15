@@ -7,8 +7,6 @@
 
 namespace CG
 {
-#define PI 3.1415926
-
 	struct Transform
 	{
 		glm::vec3 position = glm::vec3(0.0f);
@@ -79,16 +77,16 @@ namespace CG
             transform.rotation = rot;
             this->MarkDirty();
         }
-        void SetScale(const glm::vec3& s) { transform.scale = s; }
+        void SetScale(const glm::vec3& s) { transform.scale = s; MarkDirty(); }
 
-        std::vector<SceneObject*> GetChilerenObjects()
+        std::vector<SceneObject*> GetChildrenObjects()
         {
             std::vector<SceneObject*> objects;
             objects.push_back(this);
 
             for (auto& child : children)
             {
-                std::vector<SceneObject*>childObjs = child->GetChilerenObjects();
+                std::vector<SceneObject*>childObjs = child->GetChildrenObjects();
 
                 objects.insert(objects.end(), childObjs.begin(), childObjs.end());
             }

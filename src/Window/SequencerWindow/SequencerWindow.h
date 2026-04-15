@@ -91,7 +91,7 @@ namespace CG
 		AnimationGroup(SceneObject* rootObject)
 		{
 			groupName = rootObject->animationGroupName;
-			for (auto& subObj : rootObject->GetChilerenObjects())
+			for (auto& subObj : rootObject->GetChildrenObjects())
 			{
 				tracks.push_back(AnimationTrack(subObj));
 			}
