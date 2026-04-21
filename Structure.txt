@@ -1,6 +1,0 @@
-App : Manage the main program loop (Put the scene rendering loop elsewhere please)
-╠ Viewport Window : Shows the 3D scene and ImGuizmo gizmos
-║	╠  SceneDisplay : Draw the rendered FBO into this ImGui window
-║	╚  ImGuizmo overlay : Overlay ImGuizmo gizmos on top of this window
-╠ Inspector Window : When a object is selected in Hierarchy Window, show it's detail info
-╚ Hierarchy Window : Display a list of objects in 3D scene
