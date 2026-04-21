@@ -181,8 +181,12 @@ namespace CG
 
 		int currentFrame = 0;
 		int startFrame = 0;
-		int endFrame = 120;
+		int endFrame = 240;
 		bool isPlaying = false;
+
+		bool repeatFromMiddle = true;
+		int middleRepeatFrame = 120;
+
 
 		double lastTime = 0;
 		double timeAccumulated = 0;

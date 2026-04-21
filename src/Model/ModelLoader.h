@@ -55,6 +55,7 @@ namespace CG
         if (tex->mHeight == 0)
         {
             // 壓縮格式（PNG / JPG …）
+            stbi_set_flip_vertically_on_load(true);
             data = stbi_load_from_memory(
                 reinterpret_cast<const unsigned char*>(tex->pcData),
                 static_cast<int>(tex->mWidth),
@@ -276,7 +277,6 @@ namespace CG
                 path,
                 aiProcess_Triangulate |
                 aiProcess_GenSmoothNormals |
-                aiProcess_FlipUVs |
                 aiProcess_CalcTangentSpace
             );
 

@@ -291,12 +291,21 @@ namespace CG
                     timeAccumulated += now - lastTime;
                     lastTime = now;
 
-                    if (timeAccumulated >= 0.01667) // 60 fps
+                    if (timeAccumulated >= 0.015) // 60 fps
                     {
                         timeAccumulated = 0;
                         currentFrame += 1;
-                        if (currentFrame > endFrame) currentFrame = startFrame;
-
+                        if (currentFrame > endFrame)
+                        {
+                            if (repeatFromMiddle)
+                            {
+                                currentFrame = middleRepeatFrame;
+                            }
+                            else
+                            {
+                                currentFrame = startFrame;
+                            }
+                        }
                         TransformToFrame();
                     }
                 }
