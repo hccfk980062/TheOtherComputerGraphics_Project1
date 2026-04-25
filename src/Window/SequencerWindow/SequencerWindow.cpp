@@ -214,7 +214,7 @@ namespace CG
                                     {
                                         if (ImGui::IsNeoTimelineSelected())
                                         {
-                                            std::cout << "Seleted Track: " << track.trackName <<"\n";
+                                            std::cout << "Seleted Track: " << track.trackName <<"at"<< group.groupName << "\n";
                                             selectedAnimationTrack = &track;
                                         }
                                     }
@@ -411,7 +411,17 @@ namespace CG
         {
             json j = json::parse(file);
             AnimationGroup loadedGroup = j.get<AnimationGroup>(); // 呼叫既有的 from_json
+            loadedGroup.groupName = animationGroups[groupIndex].groupName;
 
+            for (int i = 0; i < animationGroups[groupIndex].tracks.size(); i++)
+            {
+                for (int j = 0; j < loadedGroup.tracks[i].keyframes.size(); j++)
+                {
+                    animationGroups[groupIndex].tracks[i].keyframes.push_back(loadedGroup.tracks[i].keyframes[j]);
+                }
+            }
+
+            /*
             // 修復指標：sourceTrack & linkedObject
             for (auto& track : loadedGroup.tracks)
             {
@@ -431,7 +441,7 @@ namespace CG
 
             // 只替換指定索引的 Group，其餘 Group 保持不變
             animationGroups[groupIndex] = std::move(loadedGroup);
-
+            */
             std::cout << "[Sequencer] Group[" << groupIndex << "] 已載入自: " << filepath << "\n";
         }
         catch (const json::exception& e)

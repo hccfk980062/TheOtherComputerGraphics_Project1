@@ -40,7 +40,7 @@ namespace CG
 		model_photonBlade = std::make_unique<Model>("objModels/PhotonBlade/untitled.fbx", false, true);//
 		// 初始化場景物件
 
-		for (int i = 0; i < 4; i++)
+		for (int i = 0; i < 5; i++)
 		{
 			std::string gundamSerialNum = "Gundam_" + std::to_string(i);
 
