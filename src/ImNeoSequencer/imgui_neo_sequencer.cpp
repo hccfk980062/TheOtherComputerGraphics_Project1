@@ -1014,17 +1014,24 @@ namespace ImGui
 
     IMGUI_API bool BeginNeoGroup(const char* label, bool* open, bool* isSelected)
     {
+        // Compute the group's own ID BEFORE BeginNeoTimeline, because if the group is
+        // open, BeginNeoTimelineEx will call PushID(groupId) to scope child timelines.
+        // Any GetID() call after that point would return a child-scoped ID, not the
+        // group's own ID, breaking the isSelected check.
+        ImGuiID groupId = 0;
+        if (isSelected != nullptr)
+        {
+            IM_ASSERT(inSequencer && "Not in active sequencer!");
+            ImGuiWindow* window = GetCurrentWindow();
+            groupId = window->GetID(label);
+        }
+
         const bool result = BeginNeoTimeline(label, nullptr, 0, open, ImGuiNeoTimelineFlags_Group);
 
         if (isSelected != nullptr)
         {
-            IM_ASSERT(inSequencer && "Not in active sequencer!");
             auto& context = sequencerData[currentSequencer];
-            // Compute the same ID that BeginNeoTimelineEx / groupBehaviour used,
-            // so we can check selection state regardless of whether the group is open.
-            ImGuiWindow* window = GetCurrentWindow();
-            const ImGuiID id = window->GetID(label);
-            *isSelected = (context.SelectedTimeline == id);
+            *isSelected = (context.SelectedTimeline == groupId);
         }
 
         return result;
@@ -1184,6 +1191,10 @@ namespace ImGui
             {
                 currentTimelineDepth++;
                 context.GroupStack.push_back(id);
+                // Push group ID so child timelines are scoped under this group.
+                // This makes same-named tracks in different groups produce distinct IDs,
+                // preventing incorrect track selection when multiple groups are expanded.
+                ImGui::PushID(id);
             }
         }
 
@@ -1225,6 +1236,7 @@ namespace ImGui
         {
             currentTimelineDepth--;
             context.GroupStack.pop_back();
+            ImGui::PopID(); // Balance the PushID(groupId) from BeginNeoTimelineEx
         }
 
         context.TimelineStack.pop_back();
