@@ -37,6 +37,7 @@ namespace CG
 
         model_photonBlade = std::make_unique<Model>("objModels/PhotonBlade/untitled.fbx", false, true);
 
+        model_Cube = std::make_unique<Model>(20, 1, 20);
         // ── 建立 5 個 Gundam 實體，各部位偏移值為 T-pose 的相對位置 ────────────
         for (int i = 0; i < 5; i++)
         {
@@ -96,6 +97,8 @@ namespace CG
         SetupSceneObject(model_photonBlade.get(), "PhotonBlade", "PhotonBlade");
         photonBladeTrail.color    = glm::vec3(1.0f, 0.0f, 0.0f);  // 紅色拖尾（對應自發光色）
         photonBladeTrail.duration = 0.3f;
+
+        SetupSceneObject(model_Cube.get(), "Cube", "0");
 
         InitIKChains();
 

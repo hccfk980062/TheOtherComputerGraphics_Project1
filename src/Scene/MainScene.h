@@ -18,6 +18,7 @@
 
 #include "Camera/Camera.h"
 #include "IK/IKSolver.h"
+#include "Lighting/Light.h"
 
 namespace CG
 {
@@ -36,7 +37,8 @@ namespace CG
         void RenderTrails(Shader* trailShader);                  // 渲染光子刀拖尾色帶
         void RenderObjectsForPicking(Shader* pickingShader);     // 顏色拾取 Pass（以 ID 編碼顏色）
 
-        Camera freeViewCamera;  // 自由飛行攝影機（WASD + 滑鼠右鍵）
+        Camera    freeViewCamera;  // 自由飛行攝影機（WASD + 滑鼠右鍵）
+        LightData light;           // 場景光源設定（Directional 或 Point）
 
         // ── 物件管理 ─────────────────────────────────────────────────────────
         std::vector<SceneObject*> ObjectList;  // 所有 SceneObject 的扁平列表（快速查找用）
@@ -70,7 +72,7 @@ namespace CG
         // 鋼彈各部位模型（index 0 預留，1~17 對應各零件）
         std::unique_ptr<Model> model_Gundam[18];
         std::unique_ptr<Model> model_photonBlade;
-
+        std::unique_ptr<Model> model_Cube;
         float lastTime = (float)glfwGetTime();  // 上幀時間，用於粒子 dt 計算
 
         // 遞迴收集場景樹中所有物件的世界矩陣，依 Model* 分組以支援 Instanced Rendering

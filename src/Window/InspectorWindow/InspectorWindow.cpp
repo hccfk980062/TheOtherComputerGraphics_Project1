@@ -34,6 +34,11 @@ namespace CG
                         DisplayIKPanel();
                         ImGui::EndTabItem();
                     }
+                    if (ImGui::BeginTabItem("Lighting"))
+                    {
+                        DisplayLightingPanel();
+                        ImGui::EndTabItem();
+                    }
                 }
                 ImGui::EndTabBar();
             }
@@ -129,6 +134,74 @@ namespace CG
         ImGui::Text("Row 1: (%.2f, %.2f, %.2f, %.2f)", model[1][0], model[1][1], model[1][2], model[1][3]);
         ImGui::Text("Row 2: (%.2f, %.2f, %.2f, %.2f)", model[2][0], model[2][1], model[2][2], model[2][3]);
         ImGui::Text("Row 3: (%.2f, %.2f, %.2f, %.2f)", model[3][0], model[3][1], model[3][2], model[3][3]);
+    }
+
+    // 光源屬性面板：控制光源類型、位置/方向、顏色、強度與陰影偏移
+    void InspectorWindow::DisplayLightingPanel()
+    {
+        if (!targetScene) return;
+
+        LightData& lt = targetScene->light;
+
+        ImGui::Text("Scene Light");
+        ImGui::Separator();
+
+        // ── 光源類型（Directional / Point）──────────────────────────────────
+        const char* typeNames[] = { "Directional Light", "Point Light" };
+        int currentType = static_cast<int>(lt.type);
+        if (ImGui::Combo("Light Type", &currentType, typeNames, 2))
+            lt.type = static_cast<LightData::Type>(currentType);
+
+        ImGui::Spacing();
+
+        // ── 位置或方向（依類型顯示不同欄位）────────────────────────────────
+        if (lt.type == LightData::Type::Directional)
+        {
+            ImGui::TextDisabled("Direction (World)");
+            ImGui::DragFloat3("##LightDir", glm::value_ptr(lt.direction), 0.05f, -1.0f, 1.0f);
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Reset##Dir"))
+                lt.direction = glm::vec3(0.0f, -1.0f, -1.0f);
+        }
+        else
+        {
+            ImGui::TextDisabled("Position (World)");
+            ImGui::DragFloat3("##LightPos", glm::value_ptr(lt.position), 0.5f);
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Reset##Pos"))
+                lt.position = glm::vec3(0.0f, 10.0f, 50.0f);
+        }
+
+        // ── 顏色（RGB Color Picker）──────────────────────────────────────────
+        ImGui::Spacing();
+        ImGui::TextDisabled("Color");
+        ImGui::ColorEdit3("##LightColor", glm::value_ptr(lt.color));
+
+        // ── 強度 ──────────────────────────────────────────────────────────────
+        ImGui::TextDisabled("Intensity");
+        ImGui::DragFloat("##LightIntensity", &lt.intensity, 0.05f, 0.0f, 10.0f, "%.2f");
+
+        // ── 陰影設定 ──────────────────────────────────────────────────────────
+        ImGui::Spacing();
+        ImGui::TextDisabled("Shadow");
+        ImGui::DragFloat("Bias##Shadow", &lt.shadowBias, 0.0001f, 0.0001f, 0.05f, "%.4f");
+        ImGui::SameLine();
+        if (ImGui::SmallButton("Reset##Bias"))
+            lt.shadowBias = 0.005f;
+
+        // ── 即時資訊（唯讀）──────────────────────────────────────────────────
+        ImGui::Spacing();
+        ImGui::TextDisabled("Info");
+        if (lt.type == LightData::Type::Directional)
+        {
+            glm::vec3 d = glm::normalize(lt.direction);
+            ImGui::Text("Dir (norm): (%.2f, %.2f, %.2f)", d.x, d.y, d.z);
+        }
+        else
+        {
+            ImGui::Text("Pos: (%.1f, %.1f, %.1f)", lt.position.x, lt.position.y, lt.position.z);
+        }
+        ImGui::Text("Color: (%.2f, %.2f, %.2f) x %.2f", lt.color.x, lt.color.y, lt.color.z, lt.intensity);
     }
 
     // IK 屬性面板：列出所有 IK 鏈，提供啟用開關、目標設定與解算參數調整

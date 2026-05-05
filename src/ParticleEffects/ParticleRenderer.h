@@ -11,6 +11,7 @@ namespace CG
     {
         glm::vec3 position;
         glm::vec3 velocity;
+        glm::vec3 acceleration;
         glm::vec4 color;  // rgba，a 通道隨生命值衰減（fade out）
         float     life;   // 剩餘生命時間（秒）；≤ 0 代表死亡
         float     size;

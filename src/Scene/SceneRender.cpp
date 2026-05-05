@@ -4,31 +4,91 @@ namespace CG
 {
     auto SceneRenderer::Initialize(int width, int height) -> bool
     {
-        // 建立顯示用與拾取用的離屏 FBO
         viewportFramebuffer = std::make_unique<Framebuffer>(width, height);
         pickingFramebuffer  = std::make_unique<Framebuffer>(width, height);
+        shadowMapBuffer     = std::make_unique<ShadowMap>(2048, 2048);
 
-        // 載入並編譯各用途的著色器程式
-        shaderProgram_particle    = std::make_unique<Shader>("ShaderPrograms/Particle_vertex.vert",           "ShaderPrograms/Particle_fragement.frag");
-        shaderProgram_trail       = std::make_unique<Shader>("ShaderPrograms/Trail_vertex.vert",              "ShaderPrograms/Trail_fragment.frag");
-        shaderProgram_worldObject = std::make_unique<Shader>("ShaderPrograms/shader_worldObject_vertex.vert", "ShaderPrograms/shader_worldObject_fragment.frag");
-        shaderProgram_picking     = std::make_unique<Shader>("ShaderPrograms/shader_picking_vertex.vert",     "ShaderPrograms/shader_picking_fragment.frag");
+        shaderProgram_particle    = std::make_unique<Shader>("ShaderPrograms/Particle_vertex.vert",              "ShaderPrograms/Particle_fragement.frag");
+        shaderProgram_trail       = std::make_unique<Shader>("ShaderPrograms/Trail_vertex.vert",                 "ShaderPrograms/Trail_fragment.frag");
+        shaderProgram_worldObject = std::make_unique<Shader>("ShaderPrograms/shader_worldObject_vertex.vert",   "ShaderPrograms/shader_worldObject_fragment.frag");
+        shaderProgram_picking     = std::make_unique<Shader>("ShaderPrograms/shader_picking_vertex.vert",       "ShaderPrograms/shader_picking_fragment.frag");
+        shaderProgram_shadowDepth = std::make_unique<Shader>("ShaderPrograms/shader_shadow_depth_vertex.vert",  "ShaderPrograms/shader_shadow_depth_fragment.frag");
         return true;
+    }
+
+    // 依光源類型計算 light-space MVP 矩陣，供 shadow pass 與主 pass 共用
+    glm::mat4 SceneRenderer::ComputeLightSpaceMatrix(const LightData& light)
+    {
+        glm::vec3 sceneCenter(0.0f, 0.0f, 0.0f);
+        glm::mat4 lightView, lightProj;
+
+        if (light.type == LightData::Type::Directional)
+        {
+            glm::vec3 dir     = glm::normalize(light.direction);
+            glm::vec3 lightPos = sceneCenter - dir * 50.0f;
+            // 避免 up 向量與 dir 平行（造成 lookAt 退化）
+            glm::vec3 up = (glm::abs(glm::dot(dir, glm::vec3(0, 1, 0))) < 0.99f)
+                         ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
+            lightView = glm::lookAt(lightPos, sceneCenter, up);
+            // 正交投影覆蓋場景範圍（-30~30 世界單位）
+            lightProj = glm::ortho(-30.0f, 30.0f, -30.0f, 30.0f, 1.0f, 200.0f);
+        }
+        else
+        {
+            glm::vec3 toCenter = sceneCenter - light.position;
+            glm::vec3 up = (glm::length(toCenter) > 0.001f &&
+                            glm::abs(glm::dot(glm::normalize(toCenter), glm::vec3(0, 1, 0))) < 0.99f)
+                         ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
+            lightView = glm::lookAt(light.position, sceneCenter, up);
+            // 透視投影（90° FOV，正方形 aspect）
+            lightProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 500.0f);
+        }
+
+        return lightProj * lightView;
     }
 
     void SceneRenderer::RenderScene(MainScene* scene)
     {
-        // 渲染目標切換至 viewport FBO
+        // ── Shadow Depth Pass ──────────────────────────────────────────────────
+        // 從光源視角渲染整個場景，僅寫入深度值到 shadowMapBuffer
+        lightSpaceMatrix = ComputeLightSpaceMatrix(scene->light);
+
+        glViewport(0, 0, shadowMapBuffer->width, shadowMapBuffer->height);
+        glBindFramebuffer(GL_FRAMEBUFFER, shadowMapBuffer->fbo);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+
+        shaderProgram_shadowDepth->use();
+        shaderProgram_shadowDepth->setUnifMat4("lightSpaceMatrix", lightSpaceMatrix);
+        // RenderObjects 內部會再次呼叫 use()（no-op）並嘗試設 view/projection（無此 uniform 則靜默略過）
+        scene->RenderObjects(shaderProgram_shadowDepth.get());
+
+        // ── Main Phong Render Pass ─────────────────────────────────────────────
         glBindFramebuffer(GL_FRAMEBUFFER, viewportFramebuffer->fbo);
         glViewport(0, 0, viewportFramebuffer->width, viewportFramebuffer->height);
-        glClearColor(0.15f, 0.4f, 0.15f, 1.0f);  // 深綠底色
+        glClearColor(0.15f, 0.4f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
 
-        // 確保相機投影矩陣與 FBO 當前尺寸一致（視窗縮放後需重算）
         scene->freeViewCamera.SetProjectionMatrix(viewportFramebuffer->width, viewportFramebuffer->height);
 
-        // 依序渲染：實體物件 → 刀光拖尾 → 粒子（粒子需疊加混合，放最後）
+        // 將 shadow depth texture 綁定至 texture unit 4（0~3 由材質貼圖使用）
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, shadowMapBuffer->depthTexture);
+
+        const LightData& lt = scene->light;
+
+        shaderProgram_worldObject->use();
+        shaderProgram_worldObject->setUnifInt  ("shadowMap",       4);
+        shaderProgram_worldObject->setUnifMat4 ("lightSpaceMatrix",lightSpaceMatrix);
+        shaderProgram_worldObject->setUnifInt  ("lightType",       static_cast<int>(lt.type));
+        shaderProgram_worldObject->setUnifVec3 ("lightPosition",   lt.position.x,  lt.position.y,  lt.position.z);
+        shaderProgram_worldObject->setUnifVec3 ("lightDirection",  lt.direction.x, lt.direction.y, lt.direction.z);
+        shaderProgram_worldObject->setUnifVec3 ("lightColor",      lt.color.x,     lt.color.y,     lt.color.z);
+        shaderProgram_worldObject->setUnifFloat("lightIntensity",  lt.intensity);
+        shaderProgram_worldObject->setUnifFloat("shadowBias",      lt.shadowBias);
+
+        // 依序渲染：實體物件 → 刀光拖尾 → 粒子
         scene->RenderObjects(shaderProgram_worldObject.get());
         scene->RenderTrails(shaderProgram_trail.get());
         scene->RenderParticles(shaderProgram_particle.get());
@@ -38,7 +98,6 @@ namespace CG
 
     SceneObject* SceneRenderer::GetObjectAtPixel(MainScene* scene, int x, int y)
     {
-        // 若 picking FBO 大小與 viewport FBO 不一致則重設（懶惰同步）
         if (pickingFramebuffer->width  != viewportFramebuffer->width ||
             pickingFramebuffer->height != viewportFramebuffer->height)
         {
@@ -46,10 +105,8 @@ namespace CG
                 viewportFramebuffer->width, viewportFramebuffer->height);
         }
 
-        // ── 拾取渲染 Pass：以物件 ID 編碼為顏色，渲染整個場景 ────────────────
         glBindFramebuffer(GL_FRAMEBUFFER, pickingFramebuffer->fbo);
         glViewport(0, 0, pickingFramebuffer->width, pickingFramebuffer->height);
-        // 背景清為純白（0xFFFFFF），這是一個無效哨兵值，不會與任何合法物件 ID 衝突
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
@@ -57,20 +114,17 @@ namespace CG
         scene->freeViewCamera.SetProjectionMatrix(pickingFramebuffer->width, pickingFramebuffer->height);
         scene->RenderObjectsForPicking(shaderProgram_picking.get());
 
-        // ── 讀取目標像素顏色 ─────────────────────────────────────────────────
-        // OpenGL 原點在左下角；ImGui 影像座標原點在左上角，需翻轉 Y 軸
         int flippedY = pickingFramebuffer->height - 1 - y;
         GLubyte pixel[3] = { 0xFF, 0xFF, 0xFF };
         glReadPixels(x, flippedY, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pixel);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        // 將 RGB 三通道合併還原為 24 位元物件 ID
         uint32_t id = (static_cast<uint32_t>(pixel[0]) << 16)
                     | (static_cast<uint32_t>(pixel[1]) << 8)
                     |  static_cast<uint32_t>(pixel[2]);
 
-        if (id == 0xFFFFFFu) return nullptr;  // 點到背景
+        if (id == 0xFFFFFFu) return nullptr;
         return scene->FindObjectById(id);
     }
 

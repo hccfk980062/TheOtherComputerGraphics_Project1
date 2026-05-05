@@ -4,33 +4,44 @@ layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords;
 layout (location = 7) in mat4 InstanceMatrix;
 
-vec3 vLightPosition = vec3(0, 10, 50);
-
 out vec3 vVaryingNormal;
 out vec3 vVaryingLightDir;
 out vec2 TexCoords;
+out vec4 vFragPosLightSpace;
 
-uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 lightSpaceMatrix;
+
+uniform int  lightType;       // 0 = Directional, 1 = Point
+uniform vec3 lightPosition;   // 世界座標（Point Light 用）
+uniform vec3 lightDirection;  // 世界座標方向（Directional Light 用）
 
 void main()
 {
     mat4 MVP = projection * view * InstanceMatrix;
     mat4 MV  = view * InstanceMatrix;
 
-    // ── 修正：Normal Matrix 必須用 transpose(inverse(...)) ────────────
-    // 僅取 mat3(MV) 在模型有非均勻縮放時會導致法向量扭曲，光照計算錯誤
-    mat3 normalMatrix = transpose(inverse(mat3(MV)));   // ← 修正
+    mat3 normalMatrix = transpose(inverse(mat3(MV)));
     vVaryingNormal = normalMatrix * aNormal;
 
-    // Get vertex position in eye coordinates
     vec4 vPosition4 = MV * vec4(aPos, 1.0);
     vec3 vPosition3 = vPosition4.xyz / vPosition4.w;
 
-    // Get vector to light source
-    vVaryingLightDir = normalize(vLightPosition - vPosition3);
+    if (lightType == 0)
+    {
+        // Directional: 將世界空間方向轉至 eye space，取反後得到指向光源的向量
+        vec3 dirEye = normalize(mat3(view) * (-normalize(lightDirection)));
+        vVaryingLightDir = dirEye;
+    }
+    else
+    {
+        // Point: 從 eye-space 頂點位置指向 eye-space 光源位置
+        vec3 lightPosEye = vec3(view * vec4(lightPosition, 1.0));
+        vVaryingLightDir = normalize(lightPosEye - vPosition3);
+    }
 
-    TexCoords  = aTexCoords;
+    TexCoords = aTexCoords;
+    vFragPosLightSpace = lightSpaceMatrix * InstanceMatrix * vec4(aPos, 1.0);
     gl_Position = MVP * vec4(aPos, 1.0);
 }
