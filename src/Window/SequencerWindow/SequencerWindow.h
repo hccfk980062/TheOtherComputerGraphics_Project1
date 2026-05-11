@@ -71,11 +71,23 @@ namespace CG
         }
     };
 
-    // 一組動畫群組：對應一個 Gundam 的所有部位軌道
+    // 一組動畫群組：對應一個 Gundam 的所有部位軌道，並持有獨立播放狀態
     struct AnimationGroup
     {
         std::string                 groupName;  // 群組名稱（== animationGroupName，例如 "Gundam_0"）
         std::vector<AnimationTrack> tracks;
+
+        // ── 獨立播放狀態（每個機器人各自管理）──────────────────────────────
+        bool open          = true;
+        int  currentFrame  = 0;
+        int  startFrame    = 0;
+        int  endFrame      = 240;   // 可調整此群組的最大動畫長度
+        bool isPlaying     = false;
+        bool enableLoop    = true;  // 播放結束後是否重播
+        int  loopStartFrame = 0;   // 重播起始幀（預設 0）
+
+        double lastTime        = 0.0;
+        double timeAccumulated = 0.0;
 
         AnimationGroup() = default;
 
@@ -85,6 +97,57 @@ namespace CG
         {
             for (auto* sub : rootObject->GetChildrenObjects())
                 tracks.push_back(AnimationTrack(sub));
+        }
+
+        // 根據 currentFrame 插值並套用至所有 linkedObject
+        void TransformToFrame()
+        {
+            for (auto& track : tracks)
+            {
+                if (track.keyframes.empty()) continue;
+
+                KeyframeData prev, next;
+                track.GetClampedKeyframes(currentFrame, prev, next);
+
+                float t     = 0.0f;
+                int   range = next.frame - prev.frame;
+                if (range > 0)
+                    t = glm::clamp(float(currentFrame - prev.frame) / float(range), 0.0f, 1.0f);
+
+                track.linkedObject->SetPosition(glm::mix(prev.position, next.position, t));
+                track.linkedObject->SetRotation(glm::slerp(prev.rotation, next.rotation, t));
+                track.linkedObject->SetScale(glm::mix(prev.scale, next.scale, t));
+            }
+        }
+
+        // 推進播放時鐘：每累積 ≥ 15ms（≈ 66fps）推進一幀
+        void AdvancePlayback()
+        {
+            double now = ImGui::GetTime();
+            if (!isPlaying)
+            {
+                lastTime = now;  // 暫停時持續更新，避免恢復播放時時間突增
+                return;
+            }
+            timeAccumulated += now - lastTime;
+            lastTime = now;
+
+            if (timeAccumulated >= 0.015)
+            {
+                timeAccumulated = 0;
+                ++currentFrame;
+                if (currentFrame > endFrame)
+                {
+                    if (enableLoop)
+                        currentFrame = glm::clamp(loopStartFrame, startFrame, endFrame);
+                    else
+                    {
+                        currentFrame = endFrame;
+                        isPlaying    = false;
+                    }
+                }
+                TransformToFrame();
+            }
         }
     };
 
@@ -117,14 +180,26 @@ namespace CG
         j.at("keyframes").get_to(t.keyframes);
     }
 
+    // 序列化包含獨立播放設定，向下相容（舊 JSON 缺少欄位時使用預設值）
     inline void to_json(json& j, const AnimationGroup& g)
     {
-        j = json{ {"groupName", g.groupName}, {"tracks", g.tracks} };
+        j = json{
+            {"groupName",      g.groupName},
+            {"tracks",         g.tracks},
+            {"startFrame",     g.startFrame},
+            {"endFrame",       g.endFrame},
+            {"enableLoop",     g.enableLoop},
+            {"loopStartFrame", g.loopStartFrame}
+        };
     }
     inline void from_json(const json& j, AnimationGroup& g)
     {
         j.at("groupName").get_to(g.groupName);
         j.at("tracks").get_to(g.tracks);
+        g.startFrame     = j.value("startFrame",     0);
+        g.endFrame       = j.value("endFrame",       240);
+        g.enableLoop     = j.value("enableLoop",     true);
+        g.loopStartFrame = j.value("loopStartFrame", 0);
     }
 
     // ─── 動畫命令（支援 Undo / Redo）────────────────────────────────────────
@@ -203,7 +278,7 @@ namespace CG
 
     // ─── SequencerWindow ──────────────────────────────────────────────────────
 
-    // 關鍵幀動畫序列器視窗：以 ImNeoSequencer 顯示所有動畫群組，支援播放、新增/刪除關鍵幀及 JSON 匯出入
+    // 關鍵幀動畫序列器視窗：每個機器人持有獨立 NeoSequencer 軌道組與播放狀態
     class SequencerWindow
     {
     public:
@@ -235,50 +310,12 @@ namespace CG
 
         std::vector<AnimationGroup> animationGroups;
 
-        int  currentFrame  = 0;    // 目前播放/編輯位置（幀號）
-        int  startFrame    = 0;    // 動畫起始幀
-        int  endFrame      = 240;  // 動畫結束幀
-        bool isPlaying     = false;
+        int             selectedGroupIndex    = -1;
+        KeyframeData*   selectedKeyframe      = nullptr;
+        AnimationTrack* selectedAnimationTrack = nullptr;
 
-        // 從中間幀重複播放（循環起點）
-        bool repeatFromMiddle  = true;
-        int  middleRepeatFrame = 120;
-
-        double lastTime        = 0;   // 上次播放時間（秒），用於計算 dt
-        double timeAccumulated = 0;   // 累積的播放時間，達 1/60 秒時推進一幀
-        int    selectedGroupIndex = -1;
-
-        bool transformTabOpen[8] = { true };  // 各群組在序列器中的展開狀態
-
-        KeyframeData*   selectedKeyframe       = nullptr;  // 右鍵點擊的關鍵幀（供 popup 編輯）
-        AnimationTrack* selectedAnimationTrack = nullptr;  // 目前選取的軌道（新增關鍵幀用）
-
-        // 本幀序列器渲染期間收集的「待刪除關鍵幀」，在 EndNeoSequencer 後批次執行刪除命令
+        // 本幀序列器渲染期間收集的「待刪除關鍵幀」，EndNeoSequencer 後批次執行
         std::vector<std::pair<AnimationTrack*, KeyframeData>> m_pendingDeleteKeyframes;
-
-        // 根據 currentFrame 插值（線性位移、Slerp 旋轉、線性縮放），並套用至所有 linkedObject
-        void TransformToFrame()
-        {
-            for (auto& group : animationGroups)
-            {
-                for (auto& track : group.tracks)
-                {
-                    if (track.keyframes.empty()) continue;
-
-                    KeyframeData prev, next;
-                    track.GetClampedKeyframes(currentFrame, prev, next);
-
-                    float t     = 0.0f;
-                    int   range = next.frame - prev.frame;
-                    if (range > 0)
-                        t = glm::clamp(float(currentFrame - prev.frame) / float(range), 0.0f, 1.0f);
-
-                    track.linkedObject->SetPosition(glm::mix(prev.position, next.position, t));
-                    track.linkedObject->SetRotation(glm::slerp(prev.rotation, next.rotation, t));
-                    track.linkedObject->SetScale(glm::mix(prev.scale, next.scale, t));
-                }
-            }
-        }
 
         // ── JSON 匯出入 ───────────────────────────────────────────────────────
         void ExportAllToJson(const std::string& filepath);

@@ -11,6 +11,7 @@
 #include "Window/ViewportWindow/ViewportWindow.h"
 #include "Window/HierarchyWindow/HierarchyWindow.h"
 #include "Window/SequencerWindow/SequencerWindow.h"
+#include "Window/ParticleEditorWindow/ParticleEditorWindow.h"
 
 #include "Scene/SceneRenderer.h"
 #include "Scene/MainScene.h"
@@ -43,6 +44,9 @@ namespace CG
         std::unique_ptr<ViewportWindow>  viewportWindow;   // 3D 視口（含 Gizmo 操控）
         std::unique_ptr<HierarchyWindow> hierarchyWindow;  // 場景層級樹
         std::unique_ptr<SequencerWindow> sequencerWindow;  // 關鍵幀動畫序列器
+
+        std::unique_ptr<ParticleEditorWindow> particleEditorWindow;  // 粒子特效編輯器
+        bool m_showParticleEditor = true;
 
         std::unique_ptr<SceneRenderer>   sceneRenderer;   // 負責渲染到離屏 FBO
         std::unique_ptr<MainScene>       mainScene;        // 場景資料（物件樹、模型、IK）

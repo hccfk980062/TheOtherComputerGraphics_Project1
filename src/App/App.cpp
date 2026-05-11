@@ -81,6 +81,9 @@ namespace CG
         sequencerWindow->SetTargetScene(mainScene.get());
         sequencerWindow->SetCommandStack(&commandStack);
 
+        particleEditorWindow = std::make_unique<ParticleEditorWindow>();
+        particleEditorWindow->Initialize();
+
         // ── 訂閱「物件選取」事件：同步更新 mainScene->selectedObject ─────────
         // ViewportWindow（顏色拾取）和 HierarchyWindow（樹狀點擊）都會發布此事件
         eventBus.Subscribe<ObjectSelectedEvent>([this](const ObjectSelectedEvent& e)
@@ -138,6 +141,9 @@ namespace CG
             inspectorWindow->Display();
             hierarchyWindow->Display();
             sequencerWindow->Display();
+
+            if (m_showParticleEditor)
+                particleEditorWindow->Display();
 
             // 將 ImGui 繪製資料提交至 GPU
             ImGui::Render();
@@ -197,6 +203,17 @@ namespace CG
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::Begin("DockSpace", nullptr, host_flags);
         ImGui::PopStyleVar();
+
+        // 選單列：提供切換各工具視窗的入口
+        if (ImGui::BeginMenuBar())
+        {
+            if (ImGui::BeginMenu("Tools"))
+            {
+                ImGui::MenuItem("Particle Editor", nullptr, &m_showParticleEditor);
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
+        }
 
         ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
         ImGui::DockSpace(dockspace_id, ImVec2(0, 0), ImGuiDockNodeFlags_PassthruCentralNode);

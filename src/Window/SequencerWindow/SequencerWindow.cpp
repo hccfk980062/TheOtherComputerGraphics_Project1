@@ -22,106 +22,21 @@ namespace CG
             return;
         }
 
-        // ── 播放控制列 ────────────────────────────────────────────────────────
+        // ── 全域匯出入按鈕 ────────────────────────────────────────────────────
+        if (ImGui::Button("Export ALL"))
         {
-            // 跳到開頭
-            if (ImGui::Button("|<"))
-            { currentFrame = startFrame; TransformToFrame(); }
-            ImGui::SameLine();
-            // 後退一幀
-            if (ImGui::Button("<"))
-            { currentFrame = std::max(startFrame, currentFrame - 1); TransformToFrame(); }
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(80.f);
-            ImGui::DragInt("Frame", &currentFrame, 1, startFrame, endFrame);
-            ImGui::SameLine();
-            // 前進一幀
-            if (ImGui::Button(">"))
-            { currentFrame = std::min(endFrame, currentFrame + 1); TransformToFrame(); }
-            ImGui::SameLine();
-            // 跳到結尾
-            if (ImGui::Button(">|"))
-            { currentFrame = endFrame; TransformToFrame(); }
-
-            ImGui::SameLine();
-            // 播放/暫停切換，同時對所有軌道排序以確保插值正確
-            if (ImGui::Button("Play / Pause"))
-            {
-                isPlaying = !isPlaying;
-                lastTime  = ImGui::GetTime();
-                for (auto& g : animationGroups)
-                    for (auto& t : g.tracks) t.SortKeyframeDatas();
-            }
-
-            ImGui::SameLine();
-            // 新增關鍵幀：將 selectedAnimationTrack 在 currentFrame 的當前 Transform 記錄下來
-            if (ImGui::Button("Add Keyframe"))
-            {
-                if (selectedAnimationTrack && m_cmdStack)
-                {
-                    // 同一幀只允許一個關鍵幀，先檢查是否已存在
-                    KeyframeData existing, dummy;
-                    selectedAnimationTrack->GetClampedKeyframes(currentFrame, existing, dummy);
-                    if (existing.frame != currentFrame)
-                    {
-                        KeyframeData kf{
-                            currentFrame,
-                            selectedAnimationTrack->linkedObject->transform.position,
-                            selectedAnimationTrack->linkedObject->transform.rotation,
-                            selectedAnimationTrack->linkedObject->transform.scale,
-                            selectedAnimationTrack
-                        };
-                        m_cmdStack->Execute(std::make_unique<AddKeyframeCommand>(selectedAnimationTrack, kf));
-                    }
-                }
-                else if (selectedAnimationTrack && !m_cmdStack)
-                {
-                    // 無 CommandStack 時退化為直接修改（不支援 Undo）
-                    KeyframeData existing, dummy;
-                    selectedAnimationTrack->GetClampedKeyframes(currentFrame, existing, dummy);
-                    if (existing.frame != currentFrame)
-                        selectedAnimationTrack->keyframes.push_back({
-                            currentFrame,
-                            selectedAnimationTrack->linkedObject->transform.position,
-                            selectedAnimationTrack->linkedObject->transform.rotation,
-                            selectedAnimationTrack->linkedObject->transform.scale,
-                            selectedAnimationTrack
-                        });
-                }
-            }
-
-            // ── JSON 匯出入按鈕（透過 ImGuiFileDialog 選擇路徑）──────────────
-            ImGui::SameLine();
-            if (ImGui::Button("Export ALL"))
-            {
-                IGFD::FileDialogConfig cfg; cfg.path = "."; cfg.fileName = "ExportedAnimation.json";
-                ImGuiFileDialog::Instance()->OpenDialog("FileDialog_ExportALL", "Export ALL Animation JSON to:", ".json", cfg);
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Import ALL"))
-            {
-                IGFD::FileDialogConfig cfg; cfg.path = ".";
-                ImGuiFileDialog::Instance()->OpenDialog("FileDialog_ImportALL", "Import ALL Animation JSON from:", ".json", cfg);
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Export Selected") && selectedGroupIndex >= 0 && selectedGroupIndex < (int)animationGroups.size())
-            {
-                IGFD::FileDialogConfig cfg; cfg.path = ".";
-                cfg.fileName = "ExportedAnimation_" + animationGroups[selectedGroupIndex].groupName + ".json";
-                ImGuiFileDialog::Instance()->OpenDialog("FileDialog_ExportSpecific",
-                    "Export Group " + animationGroups[selectedGroupIndex].groupName + " to:", ".json", cfg);
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Import Selected") && selectedGroupIndex >= 0 && selectedGroupIndex < (int)animationGroups.size())
-            {
-                IGFD::FileDialogConfig cfg; cfg.path = ".";
-                ImGuiFileDialog::Instance()->OpenDialog("FileDialog_ImportSpecific",
-                    "Import Group " + animationGroups[selectedGroupIndex].groupName + " from:", ".json", cfg);
-            }
-            ImGui::Separator();
+            IGFD::FileDialogConfig cfg; cfg.path = "."; cfg.fileName = "ExportedAnimation.json";
+            ImGuiFileDialog::Instance()->OpenDialog("FileDialog_ExportALL", "Export ALL to:", ".json", cfg);
         }
+        ImGui::SameLine();
+        if (ImGui::Button("Import ALL"))
+        {
+            IGFD::FileDialogConfig cfg; cfg.path = ".";
+            ImGuiFileDialog::Instance()->OpenDialog("FileDialog_ImportALL", "Import ALL from:", ".json", cfg);
+        }
+        ImGui::Separator();
 
-        // ── 檔案對話框結果處理 ────────────────────────────────────────────────
+        // ── 全域檔案對話框 ────────────────────────────────────────────────────
         if (ImGuiFileDialog::Instance()->Display("FileDialog_ExportALL", 32, ImVec2(300, 200)))
         {
             if (ImGuiFileDialog::Instance()->IsOk())
@@ -141,7 +56,8 @@ namespace CG
         {
             if (ImGuiFileDialog::Instance()->IsOk())
             {
-                for (auto& g : animationGroups) for (auto& t : g.tracks) t.SortKeyframeDatas();
+                if (selectedGroupIndex >= 0 && selectedGroupIndex < (int)animationGroups.size())
+                    for (auto& t : animationGroups[selectedGroupIndex].tracks) t.SortKeyframeDatas();
                 ExportSpecificGroupToJson(selectedGroupIndex, ImGuiFileDialog::Instance()->GetFilePathName());
             }
             ImGuiFileDialog::Instance()->Close();
@@ -153,20 +69,124 @@ namespace CG
             ImGuiFileDialog::Instance()->Close();
         }
 
-        // ── ImNeoSequencer 主體 ───────────────────────────────────────────────
-        // 每幀渲染前清空待刪除緩衝（在 BeginNeoTimelineEx scope 內收集，EndNeoSequencer 後消費）
-        m_pendingDeleteKeyframes.clear();
-
-        if (ImGui::BeginNeoSequencer("Sequencer", &currentFrame, &startFrame, &endFrame, { 0, 0 },
-            ImGuiNeoSequencerFlags_EnableSelection          |
-            ImGuiNeoSequencerFlags_Selection_EnableDragging |
-            ImGuiNeoSequencerFlags_Selection_EnableDeletion))
+        // ── 各機器人獨立軌道組 ────────────────────────────────────────────────
+        int groupIdx = 0;
+        for (auto& group : animationGroups)
         {
-            int groupIdx = 0;
-            for (auto& group : animationGroups)
+            ImGui::PushID(groupIdx);
+
+            // 判斷目前選取的軌道是否屬於此群組
+            bool trackInGroup = false;
+            if (selectedAnimationTrack)
+                for (auto& t : group.tracks)
+                    if (&t == selectedAnimationTrack) { trackInGroup = true; break; }
+
+            // ── 群組折疊標題 ──────────────────────────────────────────────────
+            bool headerOpen = ImGui::CollapsingHeader(group.groupName.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+
+            // 無論是否展開都推進播放（折疊時仍繼續計時）
+            group.AdvancePlayback();
+
+            if (headerOpen)
             {
-                bool isGroupSelected = false;
-                if (ImGui::BeginNeoGroup(group.groupName.c_str(), &transformTabOpen[groupIdx], &isGroupSelected))
+                // ── 播放控制列 ────────────────────────────────────────────────
+                if (ImGui::Button("|<"))
+                { group.currentFrame = group.startFrame; group.TransformToFrame(); }
+                ImGui::SameLine();
+                if (ImGui::Button("<"))
+                { group.currentFrame = std::max(group.startFrame, group.currentFrame - 1); group.TransformToFrame(); }
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(80.f);
+                if (ImGui::DragInt("##frame", &group.currentFrame, 1, group.startFrame, group.endFrame))
+                    group.TransformToFrame();
+                ImGui::SameLine();
+                if (ImGui::Button(">"))
+                { group.currentFrame = std::min(group.endFrame, group.currentFrame + 1); group.TransformToFrame(); }
+                ImGui::SameLine();
+                if (ImGui::Button(">|"))
+                { group.currentFrame = group.endFrame; group.TransformToFrame(); }
+                ImGui::SameLine();
+                if (ImGui::Button(group.isPlaying ? "Pause" : "Play "))
+                {
+                    group.isPlaying = !group.isPlaying;
+                    if (group.isPlaying)
+                        for (auto& t : group.tracks) t.SortKeyframeDatas();
+                }
+                ImGui::SameLine();
+                ImGui::BeginDisabled(!trackInGroup);
+                if (ImGui::Button("Add KF") && selectedAnimationTrack)
+                {
+                    KeyframeData prev, next;
+                    selectedAnimationTrack->GetClampedKeyframes(group.currentFrame, prev, next);
+                    // 同一幀只允許一個關鍵幀（以 next 判斷較精確）
+                    if (next.frame != group.currentFrame)
+                    {
+                        KeyframeData kf{
+                            group.currentFrame,
+                            selectedAnimationTrack->linkedObject->transform.position,
+                            selectedAnimationTrack->linkedObject->transform.rotation,
+                            selectedAnimationTrack->linkedObject->transform.scale,
+                            selectedAnimationTrack
+                        };
+                        if (m_cmdStack)
+                            m_cmdStack->Execute(std::make_unique<AddKeyframeCommand>(selectedAnimationTrack, kf));
+                        else
+                        {
+                            kf.sourceTrack = selectedAnimationTrack;
+                            selectedAnimationTrack->keyframes.push_back(kf);
+                            selectedAnimationTrack->SortKeyframeDatas();
+                        }
+                    }
+                }
+                ImGui::EndDisabled();
+
+                // ── 動畫長度與循環設定列 ──────────────────────────────────────
+                ImGui::Text("Range:");
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(60.f);
+                ImGui::DragInt("##start", &group.startFrame, 1, 0, group.endFrame - 1);
+                ImGui::SameLine();
+                ImGui::Text("~");
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(60.f);
+                ImGui::DragInt("##end", &group.endFrame, 1, group.startFrame + 1, 9999);
+                ImGui::SameLine();
+                ImGui::Checkbox("Loop", &group.enableLoop);
+                if (group.enableLoop)
+                {
+                    ImGui::SameLine();
+                    ImGui::Text("from");
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(60.f);
+                    ImGui::DragInt("##loopFrom", &group.loopStartFrame, 1, group.startFrame, group.endFrame);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Export"))
+                {
+                    selectedGroupIndex = groupIdx;
+                    IGFD::FileDialogConfig cfg; cfg.path = ".";
+                    cfg.fileName = "ExportedAnimation_" + group.groupName + ".json";
+                    ImGuiFileDialog::Instance()->OpenDialog("FileDialog_ExportSpecific",
+                        ("Export " + group.groupName + " to:").c_str(), ".json", cfg);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Import"))
+                {
+                    selectedGroupIndex = groupIdx;
+                    IGFD::FileDialogConfig cfg; cfg.path = ".";
+                    ImGuiFileDialog::Instance()->OpenDialog("FileDialog_ImportSpecific",
+                        ("Import " + group.groupName + " from:").c_str(), ".json", cfg);
+                }
+
+                // ── 此群組的 NeoSequencer ─────────────────────────────────────
+                m_pendingDeleteKeyframes.clear();
+
+                if (ImGui::BeginNeoSequencer(group.groupName.c_str(),
+                    &group.currentFrame, &group.startFrame, &group.endFrame,
+                    { 0, 0 },
+                    ImGuiNeoSequencerFlags_EnableSelection          |
+                    ImGuiNeoSequencerFlags_Selection_EnableDragging |
+                    ImGuiNeoSequencerFlags_Selection_EnableDeletion))
                 {
                     for (auto& track : group.tracks)
                     {
@@ -192,18 +212,13 @@ namespace CG
                                 {
                                     std::vector<ImGui::FrameIndexType> selFrames(selSize);
                                     ImGui::GetNeoKeyframeSelection(selFrames.data());
-
                                     for (auto selFrame : selFrames)
-                                    {
                                         for (auto& kf : track.keyframes)
-                                        {
                                             if (kf.frame == selFrame)
                                             {
                                                 m_pendingDeleteKeyframes.emplace_back(&track, kf);
                                                 break;
                                             }
-                                        }
-                                    }
                                 }
                             }
 
@@ -217,98 +232,73 @@ namespace CG
                             ImGui::EndNeoTimeLine();
                         }
                     }
-                    ImGui::EndNeoGroup();
-                }
 
-                if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && isGroupSelected)
-                    selectedGroupIndex = groupIdx;
-
-                ++groupIdx;
-            }
-
-            // ── 關鍵幀編輯 Popup（右鍵點擊關鍵幀後開啟）────────────────────
-            if (ImGui::BeginPopup("KeyframeEditor"))
-            {
-                if (selectedKeyframe)
-                {
-                    ImGui::Text("Edit Keyframe  [Frame %d]", selectedKeyframe->frame);
-                    ImGui::Separator();
-
-                    ImGui::DragInt("Frame",    &selectedKeyframe->frame,    1, startFrame, endFrame);
-                    ImGui::DragFloat3("Position", glm::value_ptr(selectedKeyframe->position), 0.1f);
-
-                    // 旋轉以尤拉角顯示，輸入後轉回四元數
-                    glm::vec3 euler = glm::degrees(glm::eulerAngles(selectedKeyframe->rotation));
-                    if (ImGui::DragFloat3("Rotation", glm::value_ptr(euler), 0.5f))
-                        selectedKeyframe->rotation = glm::quat(glm::radians(euler));
-
-                    ImGui::DragFloat3("Scale", glm::value_ptr(selectedKeyframe->scale), 0.01f);
-                    ImGui::Separator();
-
-                    if (ImGui::Button("Apply & Close"))
+                    // ── 關鍵幀編輯 Popup（右鍵點擊關鍵幀後開啟）──────────────
+                    if (ImGui::BeginPopup("KeyframeEditor"))
                     {
-                        for (auto& g : animationGroups) for (auto& t : g.tracks) t.SortKeyframeDatas();
-                        selectedKeyframe = nullptr;
-                        ImGui::CloseCurrentPopup();
+                        if (selectedKeyframe)
+                        {
+                            ImGui::Text("Edit Keyframe  [Frame %d]", selectedKeyframe->frame);
+                            ImGui::Separator();
+
+                            ImGui::DragInt("Frame##kf",    &selectedKeyframe->frame,    1, group.startFrame, group.endFrame);
+                            ImGui::DragFloat3("Position", glm::value_ptr(selectedKeyframe->position), 0.1f);
+
+                            // 旋轉以尤拉角顯示，輸入後轉回四元數
+                            glm::vec3 euler = glm::degrees(glm::eulerAngles(selectedKeyframe->rotation));
+                            if (ImGui::DragFloat3("Rotation", glm::value_ptr(euler), 0.5f))
+                                selectedKeyframe->rotation = glm::quat(glm::radians(euler));
+
+                            ImGui::DragFloat3("Scale", glm::value_ptr(selectedKeyframe->scale), 0.01f);
+                            ImGui::Separator();
+
+                            if (ImGui::Button("Apply & Close"))
+                            {
+                                for (auto& t : group.tracks) t.SortKeyframeDatas();
+                                selectedKeyframe = nullptr;
+                                ImGui::CloseCurrentPopup();
+                            }
+                            ImGui::SameLine();
+                            if (ImGui::Button("Delete"))
+                            {
+                                if (m_cmdStack)
+                                {
+                                    std::vector<BatchDeleteKeyframesCommand::Pair> del;
+                                    del.emplace_back(selectedKeyframe->sourceTrack, *selectedKeyframe);
+                                    m_cmdStack->Execute(std::make_unique<BatchDeleteKeyframesCommand>(std::move(del)));
+                                }
+                                else
+                                {
+                                    auto& kfs = selectedKeyframe->sourceTrack->keyframes;
+                                    kfs.erase(std::remove_if(kfs.begin(), kfs.end(),
+                                        [this](const KeyframeData& k) { return &k == selectedKeyframe; }),
+                                        kfs.end());
+                                }
+                                selectedKeyframe = nullptr;
+                                ImGui::CloseCurrentPopup();
+                            }
+                        }
+                        ImGui::EndPopup();
                     }
-                    ImGui::SameLine();
-                    if (ImGui::Button("Delete"))
+
+                    // ── 按下 Delete / Backspace 批次刪除選取的關鍵幀 ─────────
+                    bool deletePressed = ImGui::IsKeyPressed(ImGuiKey_Delete,    false)
+                                      || ImGui::IsKeyPressed(ImGuiKey_Backspace, false);
+                    if (deletePressed && !m_pendingDeleteKeyframes.empty() &&
+                        ImGui::NeoCanDeleteSelection() && m_cmdStack)
                     {
-                        if (m_cmdStack)
-                        {
-                            std::vector<BatchDeleteKeyframesCommand::Pair> del;
-                            del.emplace_back(selectedKeyframe->sourceTrack, *selectedKeyframe);
-                            m_cmdStack->Execute(std::make_unique<BatchDeleteKeyframesCommand>(std::move(del)));
-                        }
-                        else
-                        {
-                            // 無 CommandStack 時直接刪除（不支援 Undo）
-                            auto& kfs = selectedKeyframe->sourceTrack->keyframes;
-                            kfs.erase(std::remove_if(kfs.begin(), kfs.end(),
-                                [this](const KeyframeData& k) { return &k == selectedKeyframe; }),
-                                kfs.end());
-                        }
-                        selectedKeyframe = nullptr;
-                        ImGui::CloseCurrentPopup();
+                        m_cmdStack->Execute(
+                            std::make_unique<BatchDeleteKeyframesCommand>(m_pendingDeleteKeyframes));
+                        ImGui::NeoClearSelection();
+                        m_pendingDeleteKeyframes.clear();
                     }
+
+                    ImGui::EndNeoSequencer();
                 }
-                ImGui::EndPopup();
             }
 
-            // ── 按下 Delete / Backspace 批次刪除選取的關鍵幀 ────────────────
-            // m_pendingDeleteKeyframes 可能含有重複項目（多 track 迭代造成），
-            // BatchDeleteKeyframesCommand 以幀號唯一性去重
-            bool deletePressed = ImGui::IsKeyPressed(ImGuiKey_Delete,    false)
-                              || ImGui::IsKeyPressed(ImGuiKey_Backspace, false);
-
-            if (deletePressed && !m_pendingDeleteKeyframes.empty() &&
-                ImGui::NeoCanDeleteSelection() && m_cmdStack)
-            {
-                m_cmdStack->Execute(
-                    std::make_unique<BatchDeleteKeyframesCommand>(m_pendingDeleteKeyframes));
-                ImGui::NeoClearSelection();
-                m_pendingDeleteKeyframes.clear();
-            }
-
-            ImGui::EndNeoSequencer();
-        }
-
-        // ── 播放時鐘：每累積 ≥ 16ms（≈ 60fps）推進一幀 ─────────────────────
-        if (isPlaying)
-        {
-            double now = ImGui::GetTime();
-            timeAccumulated += now - lastTime;
-            lastTime = now;
-
-            if (timeAccumulated >= 0.015)
-            {
-                timeAccumulated = 0;
-                ++currentFrame;
-                // 超出結尾時從 middleRepeatFrame 或 startFrame 重新開始
-                if (currentFrame > endFrame)
-                    currentFrame = repeatFromMiddle ? middleRepeatFrame : startFrame;
-                TransformToFrame();
-            }
+            ImGui::PopID();
+            ++groupIdx;
         }
 
         ImGui::End();
@@ -316,7 +306,7 @@ namespace CG
 
     // ─── JSON 匯出入實作 ───────────────────────────────────────────────────────
 
-    // 將所有動畫群組序列化並寫入 JSON 檔（縮排 4 格）
+    // 將所有動畫群組（含播放設定）序列化並寫入 JSON 檔
     void SequencerWindow::ExportAllToJson(const std::string& filepath)
     {
         std::ofstream file(filepath);
@@ -350,7 +340,7 @@ namespace CG
         catch (const json::exception& e) { std::cerr << "[Sequencer] JSON error: " << e.what() << "\n"; }
     }
 
-    // 匯出指定群組的動畫資料至獨立 JSON 檔
+    // 匯出指定群組的動畫資料（含播放設定）至獨立 JSON 檔
     void SequencerWindow::ExportSpecificGroupToJson(int idx, const std::string& filepath)
     {
         if (idx < 0 || idx >= (int)animationGroups.size()) return;
@@ -370,12 +360,16 @@ namespace CG
         try
         {
             AnimationGroup loaded = json::parse(file).get<AnimationGroup>();
-            loaded.groupName = animationGroups[idx].groupName;  // 確保群組名稱一致
-            for (int i = 0; i < (int)animationGroups[idx].tracks.size(); ++i)
-            {
+            auto& target = animationGroups[idx];
+            // 同步播放設定
+            target.startFrame     = loaded.startFrame;
+            target.endFrame       = loaded.endFrame;
+            target.enableLoop     = loaded.enableLoop;
+            target.loopStartFrame = loaded.loopStartFrame;
+            // 合併關鍵幀
+            for (int i = 0; i < (int)target.tracks.size() && i < (int)loaded.tracks.size(); ++i)
                 for (auto& kf : loaded.tracks[i].keyframes)
-                    animationGroups[idx].tracks[i].keyframes.push_back(kf);
-            }
+                    target.tracks[i].keyframes.push_back(kf);
             std::cout << "[Sequencer] Group[" << idx << "] imported from: " << filepath << "\n";
         }
         catch (const json::exception& e) { std::cerr << "[Sequencer] JSON error: " << e.what() << "\n"; }
