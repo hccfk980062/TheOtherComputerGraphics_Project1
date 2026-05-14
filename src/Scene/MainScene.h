@@ -13,9 +13,6 @@
 #include "Model/ModelLoader.h"
 #include "Scene/Transform.h"
 
-#include "ParticleEffects/ParticleRenderer.h"
-#include "ParticleEffects/TrailRenderer.h"
-
 #include "Camera/Camera.h"
 #include "IK/IKSolver.h"
 #include "Lighting/Light.h"
@@ -47,9 +44,6 @@ namespace CG
         SceneObject* selectedObject = nullptr;  // 目前被選取的物件
         int objectCount = 0;  // 物件 ID 計數器（每次 SetupSceneObject 遞增）
 
-        // ── 光子刀特效 ───────────────────────────────────────────────────────
-        TrailRenderer    photonBladeTrail;                          // 刀光拖尾
-        ParticleRenderer photonBladePlasma = ParticleRenderer(16); // 電漿粒子效果
 
         // ── 逆向動力學 ───────────────────────────────────────────────────────
         std::vector<IKChain> ikChains;  // 場景中所有 IK 鏈（每幀由 App::FixedUpdate 解算）

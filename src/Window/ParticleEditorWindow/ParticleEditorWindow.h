@@ -1,6 +1,5 @@
 #pragma once
 #include <memory>
-#include <imgui.h>
 
 #include "Scene/ParticleEditorScene.h"
 #include "Window/ParticleEditorWindow/ParticleHierarchyWindow.h"
@@ -10,27 +9,25 @@
 
 namespace CG
 {
-    // 粒子特效編輯器的頂層視窗
-    // 持有獨立場景（ParticleEditorScene）與四個子視窗：
-    //   Hierarchy、Inspector、Viewport（含 FBO）、Sequencer（NeoSequencer）
+    // Top-level particle editor container.
+    // Owns the scene and four sub-windows; App calls Display() each frame
+    // when the editor is visible.
     class ParticleEditorWindow
     {
     public:
-        bool open = true;
+        ParticleEditorWindow();
+        ~ParticleEditorWindow();
 
         bool Initialize();
-        void Display();  // 每幀從 App::Loop() 呼叫
+
+        // Drive scene update + render, then display all sub-windows
+        void Display();
 
     private:
-        std::unique_ptr<ParticleEditorScene> m_scene;
-
-        ParticleHierarchyWindow m_hierarchy;
-        ParticleInspectorWindow m_inspector;
-        ParticleViewportWindow  m_viewport;
-        ParticleSequencerWindow m_sequencer;
-
-        float m_sequencerHeight = 180.0f;
-        float m_leftPanelWidth  = 400.0f;
+        std::unique_ptr<ParticleEditorScene>     m_scene;
+        std::unique_ptr<ParticleHierarchyWindow> m_hierarchyWindow;
+        std::unique_ptr<ParticleInspectorWindow> m_inspectorWindow;
+        std::unique_ptr<ParticleViewportWindow>  m_viewportWindow;
+        std::unique_ptr<ParticleSequencerWindow> m_sequencerWindow;
     };
-
-} // namespace CG
+}

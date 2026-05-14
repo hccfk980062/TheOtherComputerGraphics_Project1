@@ -4,19 +4,32 @@
 
 namespace CG
 {
-    // 粒子編輯器的 3D 視口：同步 FBO 尺寸、渲染場景並顯示結果
+    // Displays the particle editor's FBO and handles camera input.
+    // Follows the same one-frame-delay FBO size sync pattern as ViewportWindow.
     class ParticleViewportWindow
     {
     public:
-        void Display(ParticleEditorScene* scene);
+        ParticleViewportWindow();
+        ~ParticleViewportWindow();
+
+        bool Initialize();
+
+        // Syncs the FBO to the viewport size recorded last frame (call before scene->Render())
+        void SyncFBO();
+
+        // Displays FBO texture and handles camera mouse/keyboard input
+        void UpdateScreen();
+
+        void SetScene(ParticleEditorScene* scene) { m_scene = scene; }
 
     private:
-        void SyncFBOSize(ParticleEditorScene* scene, int w, int h);
-        void HandleCameraInput(ParticleEditorScene* scene);
+        ParticleEditorScene* m_scene = nullptr;
+
+        int   m_lastWidth  = 0;
+        int   m_lastHeight = 0;
 
         bool  m_rightMouseDown = false;
         float m_lastMouseX     = 0.0f;
         float m_lastMouseY     = 0.0f;
     };
-
-} // namespace CG
+}

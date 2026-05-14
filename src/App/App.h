@@ -40,13 +40,12 @@ namespace CG
     private:
         GLFWwindow* mainWindow;  // GLFW 主視窗控制代碼
 
-        std::unique_ptr<InspectorWindow> inspectorWindow;  // 屬性面板（Transform / Camera / IK）
-        std::unique_ptr<ViewportWindow>  viewportWindow;   // 3D 視口（含 Gizmo 操控）
-        std::unique_ptr<HierarchyWindow> hierarchyWindow;  // 場景層級樹
-        std::unique_ptr<SequencerWindow> sequencerWindow;  // 關鍵幀動畫序列器
-
-        std::unique_ptr<ParticleEditorWindow> particleEditorWindow;  // 粒子特效編輯器
-        bool m_showParticleEditor = true;
+        std::unique_ptr<InspectorWindow>     inspectorWindow;      // 屬性面板（Transform / Camera / IK）
+        std::unique_ptr<ViewportWindow>      viewportWindow;       // 3D 視口（含 Gizmo 操控）
+        std::unique_ptr<HierarchyWindow>     hierarchyWindow;      // 場景層級樹
+        std::unique_ptr<SequencerWindow>     sequencerWindow;      // 關鍵幀動畫序列器
+        std::unique_ptr<ParticleEditorWindow> m_particleEditorWindow;  // 粒子特效編輯器
+        bool m_showParticleEditor = false;
 
         std::unique_ptr<SceneRenderer>   sceneRenderer;   // 負責渲染到離屏 FBO
         std::unique_ptr<MainScene>       mainScene;        // 場景資料（物件樹、模型、IK）

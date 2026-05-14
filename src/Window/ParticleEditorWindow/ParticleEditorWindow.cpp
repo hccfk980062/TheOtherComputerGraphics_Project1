@@ -2,56 +2,48 @@
 
 namespace CG
 {
+    ParticleEditorWindow::ParticleEditorWindow()  {}
+    ParticleEditorWindow::~ParticleEditorWindow() {}
+
     bool ParticleEditorWindow::Initialize()
     {
         m_scene = std::make_unique<ParticleEditorScene>();
-        return m_scene->Initialize(800, 600);
+        if (!m_scene->Initialize(800, 600)) return false;
+
+        m_hierarchyWindow = std::make_unique<ParticleHierarchyWindow>();
+        m_hierarchyWindow->Initialize();
+        m_hierarchyWindow->SetScene(m_scene.get());
+
+        m_inspectorWindow = std::make_unique<ParticleInspectorWindow>();
+        m_inspectorWindow->Initialize();
+        m_inspectorWindow->SetScene(m_scene.get());
+
+        m_viewportWindow = std::make_unique<ParticleViewportWindow>();
+        m_viewportWindow->Initialize();
+        m_viewportWindow->SetScene(m_scene.get());
+
+        m_sequencerWindow = std::make_unique<ParticleSequencerWindow>();
+        m_sequencerWindow->Initialize();
+        m_sequencerWindow->SetScene(m_scene.get());
+
+        return true;
     }
 
     void ParticleEditorWindow::Display()
     {
-        if (!open) return;
+        // 1. Update particle simulation (dt from ImGui::GetTime())
+        m_scene->Update();
 
-        ImGui::SetNextWindowSize(ImVec2(1100, 700), ImGuiCond_FirstUseEver);
-        if (!ImGui::Begin("Particle Editor", &open, ImGuiWindowFlags_NoCollapse))
-        {
-            ImGui::End();
-            return;
-        }
+        // 2. Sync FBO to last-frame viewport size (one-frame delay, same as main ViewportWindow)
+        m_viewportWindow->SyncFBO();
 
-        ImVec2 avail      = ImGui::GetContentRegionAvail();
-        float  topHeight  = avail.y - m_sequencerHeight - ImGui::GetStyle().ItemSpacing.y;
-        if (topHeight < 80.0f) topHeight = 80.0f;
+        // 3. Render emitters into the FBO
+        m_scene->Render();
 
-        // ── 左側面板：Hierarchy（上半） + Inspector（下半） ───────────────────
-        ImGui::BeginChild("##pe_left", ImVec2(m_leftPanelWidth, topHeight), false,
-                          ImGuiWindowFlags_NoScrollbar);
-        {
-            float halfH = ImGui::GetContentRegionAvail().y * 0.45f;
-
-            ImGui::BeginChild("##pe_hier", ImVec2(0, halfH), true);
-            m_hierarchy.Display(m_scene.get());
-            ImGui::EndChild();
-
-            ImGui::BeginChild("##pe_insp", ImVec2(0, 0), true);
-            m_inspector.Display(m_scene.get());
-            ImGui::EndChild();
-        }
-        ImGui::EndChild();
-
-        ImGui::SameLine();
-
-        // ── 右側：Viewport ────────────────────────────────────────────────────
-        ImGui::BeginChild("##pe_viewport", ImVec2(0, topHeight), false);
-        m_viewport.Display(m_scene.get());
-        ImGui::EndChild();
-
-        // ── 底部：Sequencer（全寬）────────────────────────────────────────────
-        ImGui::BeginChild("##pe_seq_wrap", ImVec2(0, m_sequencerHeight), true);
-        m_sequencer.Display(m_scene.get());
-        ImGui::EndChild();
-
-        ImGui::End();
+        // 4. Draw all sub-windows (they dock into the main DockSpace automatically)
+        m_hierarchyWindow->Display();
+        m_inspectorWindow->Display();
+        m_viewportWindow->UpdateScreen();
+        m_sequencerWindow->Display();
     }
-
-} // namespace CG
+}

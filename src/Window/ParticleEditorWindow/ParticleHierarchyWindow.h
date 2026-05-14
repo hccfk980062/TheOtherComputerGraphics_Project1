@@ -1,18 +1,35 @@
 #pragma once
 #include <imgui.h>
 #include "Scene/ParticleEditorScene.h"
+#include "ParticleEffects/ConcreteEmitters.h"
 
 namespace CG
 {
-    // Emitter 層級樹視窗：列出所有 Emitter 並支援新增/刪除/選取操作
     class ParticleHierarchyWindow
     {
     public:
-        void Display(ParticleEditorScene* scene);
+        ParticleHierarchyWindow();
+        ~ParticleHierarchyWindow();
+
+        bool Initialize();
+        void Display();
+
+        void SetScene(ParticleEditorScene* scene) { m_scene = scene; }
 
     private:
-        void DrawEmitterNode(EmitterBase* emitter, ParticleEditorScene* scene);
-        EmitterBase* m_pendingDelete = nullptr;  // 延遲刪除，避免在迴圈中修改容器
-    };
+        ParticleEditorScene* m_scene = nullptr;
 
-} // namespace CG
+        // Draws one emitter node and its children recursively
+        // parent == nullptr means this is a root emitter
+        void DrawEmitterNode(EmitterBase* emitter, EmitterBase* parent);
+
+        // Right-click context menu for an emitter node
+        void DrawContextMenu(EmitterBase* emitter, EmitterBase* parent);
+
+        // Factory: creates a concrete emitter of the given type
+        std::unique_ptr<EmitterBase> CreateEmitter(EmitterType type);
+
+        // Removes child from parent->m_children, or from scene root if parent==nullptr
+        void RemoveEmitter(EmitterBase* emitter, EmitterBase* parent);
+    };
+}

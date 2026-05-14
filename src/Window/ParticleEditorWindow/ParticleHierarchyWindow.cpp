@@ -1,91 +1,127 @@
+#include <string>
+#include <algorithm>
 #include "Window/ParticleEditorWindow/ParticleHierarchyWindow.h"
 
 namespace CG
 {
-    static void OpenAddEmitterPopup(const char* popupId, ParticleEditorScene* scene, EmitterBase* parent)
+    ParticleHierarchyWindow::ParticleHierarchyWindow()  {}
+    ParticleHierarchyWindow::~ParticleHierarchyWindow() {}
+
+    bool ParticleHierarchyWindow::Initialize() { return true; }
+
+    void ParticleHierarchyWindow::Display()
     {
-        if (ImGui::BeginPopup(popupId))
+        if (!ImGui::Begin("Particle Hierarchy"))
         {
-            if (ImGui::MenuItem("Point"))  scene->AddEmitter(EmitterType::Point,  parent);
-            if (ImGui::MenuItem("Sphere")) scene->AddEmitter(EmitterType::Sphere, parent);
-            if (ImGui::MenuItem("Box"))    scene->AddEmitter(EmitterType::Box,    parent);
-            if (ImGui::MenuItem("Ring"))   scene->AddEmitter(EmitterType::Ring,   parent);
-            if (ImGui::MenuItem("Ribbon")) scene->AddEmitter(EmitterType::Ribbon, parent);
+            ImGui::End();
+            return;
+        }
+
+        if (!m_scene)
+        {
+            ImGui::TextDisabled("(no scene)");
+            ImGui::End();
+            return;
+        }
+
+        // "Add Root Emitter" button with popup
+        if (ImGui::Button("+ Add Root Emitter"))
+            ImGui::OpenPopup("AddRootPopup");
+
+        if (ImGui::BeginPopup("AddRootPopup"))
+        {
+            if (ImGui::MenuItem("Point"))  m_scene->AddRootEmitter(CreateEmitter(EmitterType::Point));
+            if (ImGui::MenuItem("Sphere")) m_scene->AddRootEmitter(CreateEmitter(EmitterType::Sphere));
+            if (ImGui::MenuItem("Box"))    m_scene->AddRootEmitter(CreateEmitter(EmitterType::Box));
+            if (ImGui::MenuItem("Ring"))   m_scene->AddRootEmitter(CreateEmitter(EmitterType::Ring));
             ImGui::EndPopup();
         }
-    }
-
-    void ParticleHierarchyWindow::Display(ParticleEditorScene* scene)
-    {
-        ImGui::Text("Hierarchy");
-        ImGui::SameLine();
-        if (ImGui::Button("+ Root"))
-            ImGui::OpenPopup("##pe_add_root");
-        OpenAddEmitterPopup("##pe_add_root", scene, nullptr);
 
         ImGui::Separator();
 
-        m_pendingDelete = nullptr;
+        for (auto& e : m_scene->m_rootEmitters)
+            DrawEmitterNode(e.get(), nullptr);
 
-        for (auto& emitter : scene->rootEmitters)
-            DrawEmitterNode(emitter.get(), scene);
-
-        // 延遲刪除，確保不在 TreeNode 迴圈中修改容器
-        if (m_pendingDelete)
-            scene->RemoveEmitter(m_pendingDelete);
+        ImGui::End();
     }
 
-    void ParticleHierarchyWindow::DrawEmitterNode(EmitterBase* emitter, ParticleEditorScene* scene)
+    void ParticleHierarchyWindow::DrawEmitterNode(EmitterBase* emitter, EmitterBase* parent)
     {
-        ImGuiTreeNodeFlags flags =
-            ImGuiTreeNodeFlags_OpenOnArrow    |
-            ImGuiTreeNodeFlags_SpanAvailWidth |
-            ImGuiTreeNodeFlags_DefaultOpen;
+        bool hasChildren = !emitter->m_children.empty();
 
-        if (emitter->children.empty())
-            flags |= ImGuiTreeNodeFlags_Leaf;
-        if (scene->selectedEmitter == emitter)
+        ImGuiTreeNodeFlags flags =
+            ImGuiTreeNodeFlags_OpenOnArrow |
+            ImGuiTreeNodeFlags_SpanAvailWidth;
+
+        if (!hasChildren)
+            flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+
+        if (m_scene->m_selectedEmitter == emitter)
             flags |= ImGuiTreeNodeFlags_Selected;
 
-        ImGui::PushID(emitter);
+        // Show alive particle count as a hint
+        std::string label = emitter->m_name + " [" + std::to_string(emitter->AliveCount()) + "]";
+        bool nodeOpen = ImGui::TreeNodeEx((void*)emitter, flags, "%s", label.c_str());
 
-        bool nodeOpen = ImGui::TreeNodeEx(emitter->name.c_str(), flags);
+        if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+            m_scene->m_selectedEmitter = emitter;
 
-        if (ImGui::IsItemClicked())
-            scene->selectedEmitter = emitter;
+        DrawContextMenu(emitter, parent);
 
-        // 右鍵選單：新增子 Emitter 或刪除
-        char ctxId[32];
-        snprintf(ctxId, sizeof(ctxId), "##ctx_%p", (void*)emitter);
-        if (ImGui::BeginPopupContextItem())
+        if (hasChildren && nodeOpen)
         {
-            if (ImGui::BeginMenu("Add Child"))
-            {
-                if (ImGui::MenuItem("Point"))  scene->AddEmitter(EmitterType::Point,  emitter);
-                if (ImGui::MenuItem("Sphere")) scene->AddEmitter(EmitterType::Sphere, emitter);
-                if (ImGui::MenuItem("Box"))    scene->AddEmitter(EmitterType::Box,    emitter);
-                if (ImGui::MenuItem("Ring"))   scene->AddEmitter(EmitterType::Ring,   emitter);
-                if (ImGui::MenuItem("Ribbon")) scene->AddEmitter(EmitterType::Ribbon, emitter);
-                ImGui::EndMenu();
-            }
-            if (ImGui::MenuItem("Delete"))
-                m_pendingDelete = emitter;
-
-            ImGui::EndPopup();
-        }
-
-        if (nodeOpen)
-        {
-            // 避免刪除後繼續遍歷已失效指標
-            for (auto& child : emitter->children)
-            {
-                if (m_pendingDelete) break;
-                DrawEmitterNode(child.get(), scene);
-            }
+            for (auto& child : emitter->m_children)
+                DrawEmitterNode(child.get(), emitter);
             ImGui::TreePop();
         }
-
-        ImGui::PopID();
     }
 
-} // namespace CG
+    void ParticleHierarchyWindow::DrawContextMenu(EmitterBase* emitter, EmitterBase* parent)
+    {
+        if (!ImGui::BeginPopupContextItem()) return;
+
+        if (ImGui::BeginMenu("Add Child"))
+        {
+            if (ImGui::MenuItem("Point"))  emitter->m_children.push_back(CreateEmitter(EmitterType::Point));
+            if (ImGui::MenuItem("Sphere")) emitter->m_children.push_back(CreateEmitter(EmitterType::Sphere));
+            if (ImGui::MenuItem("Box"))    emitter->m_children.push_back(CreateEmitter(EmitterType::Box));
+            if (ImGui::MenuItem("Ring"))   emitter->m_children.push_back(CreateEmitter(EmitterType::Ring));
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::MenuItem("Remove"))
+            RemoveEmitter(emitter, parent);
+
+        ImGui::EndPopup();
+    }
+
+    void ParticleHierarchyWindow::RemoveEmitter(EmitterBase* emitter, EmitterBase* parent)
+    {
+        if (m_scene->m_selectedEmitter == emitter)
+            m_scene->m_selectedEmitter = nullptr;
+
+        if (parent == nullptr)
+        {
+            m_scene->RemoveRootEmitter(emitter);
+        }
+        else
+        {
+            auto& ch = parent->m_children;
+            ch.erase(std::remove_if(ch.begin(), ch.end(),
+                [emitter](const std::unique_ptr<EmitterBase>& e) { return e.get() == emitter; }),
+                ch.end());
+        }
+    }
+
+    std::unique_ptr<EmitterBase> ParticleHierarchyWindow::CreateEmitter(EmitterType type)
+    {
+        switch (type)
+        {
+        case EmitterType::Point:  return std::make_unique<PointEmitter>();
+        case EmitterType::Sphere: return std::make_unique<SphereEmitter>();
+        case EmitterType::Box:    return std::make_unique<BoxEmitter>();
+        case EmitterType::Ring:   return std::make_unique<RingEmitter>();
+        }
+        return std::make_unique<PointEmitter>();
+    }
+}

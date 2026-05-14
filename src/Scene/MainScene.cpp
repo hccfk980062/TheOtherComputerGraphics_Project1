@@ -95,9 +95,6 @@ namespace CG
 
         // ── 光子刀設定 ────────────────────────────────────────────────────────
         SetupSceneObject(model_photonBlade.get(), "PhotonBlade", "PhotonBlade");
-        photonBladeTrail.color    = glm::vec3(1.0f, 0.0f, 0.0f);  // 紅色拖尾（對應自發光色）
-        photonBladeTrail.duration = 0.3f;
-
         SetupSceneObject(model_Cube.get(), "Cube", "0");
 
         InitIKChains();
@@ -297,12 +294,6 @@ namespace CG
         trailShader->setUnifMat4("projection", freeViewCamera.GetProjectionMatrix());
 
         float currentTime = (float)glfwGetTime();
-
-        // 取光子刀物件的模型矩陣，將刀刃兩端 local 座標轉換至世界空間
-        glm::vec3 worldEdgeA = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(10.0f, -0.2f, 0.0f, 1.0f));
-        glm::vec3 worldEdgeB = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(0.5f,  -0.2f, 0.0f, 1.0f));
-        photonBladeTrail.update(worldEdgeA, worldEdgeB, currentTime);
-        photonBladeTrail.Draw(trailShader);
     }
 
     // 粒子特效渲染：在光子刀刃隨機位置持續噴出電漿粒子
@@ -316,15 +307,7 @@ namespace CG
         float dt          = currentTime - lastTime;
         lastTime = currentTime;
 
-        // 在刀刃兩端之間隨機選取發射位置
-        glm::vec3 worldEdgeA = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(0.5f,  -0.2f, 0.0f, 1.0f));
-        glm::vec3 worldEdgeB = glm::vec3(FindObjectByName("PhotonBlade_PhotonBlade")->GetWorldMatrix() * glm::vec4(10.0f, -0.2f, 0.0f, 1.0f));
 
-        glm::vec3 worldPos = glm::mix(worldEdgeA, worldEdgeB, (rand() % 100) / 100.f);
-
-        photonBladePlasma.emit(worldPos, 3);
-        photonBladePlasma.update(dt);
-        photonBladePlasma.Draw();
     }
 
     // 遞迴走訪場景樹，依 Model* 指標將世界矩陣分組（Instanced Rendering 前置收集）

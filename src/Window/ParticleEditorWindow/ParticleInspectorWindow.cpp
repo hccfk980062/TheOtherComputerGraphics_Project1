@@ -1,130 +1,181 @@
-#include "Window/ParticleEditorWindow/ParticleInspectorWindow.h"
+#include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/euler_angles.hpp>
+
+#include "Window/ParticleEditorWindow/ParticleInspectorWindow.h"
 
 namespace CG
 {
-    void ParticleInspectorWindow::Display(ParticleEditorScene* scene)
-    {
-        ImGui::Text("Inspector");
-        ImGui::Separator();
+    ParticleInspectorWindow::ParticleInspectorWindow()  {}
+    ParticleInspectorWindow::~ParticleInspectorWindow() {}
 
-        EmitterBase* e = scene->selectedEmitter;
-        if (!e)
+    bool ParticleInspectorWindow::Initialize() { return true; }
+
+    void ParticleInspectorWindow::Display()
+    {
+        if (!ImGui::Begin("Particle Inspector"))
         {
-            ImGui::TextDisabled("(No emitter selected)");
+            ImGui::End();
             return;
         }
 
-        // 名稱編輯
-        char nameBuf[128];
-        strncpy_s(nameBuf, e->name.c_str(), sizeof(nameBuf) - 1);
-        if (ImGui::InputText("Name", nameBuf, sizeof(nameBuf)))
-            e->name = nameBuf;
+        if (!m_scene || !m_scene->m_selectedEmitter)
+        {
+            ImGui::TextDisabled("Select an emitter in the Hierarchy.");
+            ImGui::End();
+            return;
+        }
 
-        ImGui::Spacing();
-        DrawTypeSpecificProps(e);
-        DrawEmissionProps(e);
-        DrawTimelineProps(e);
-        DrawEmitterMotionProps(e);
-        DrawParticleProps(e);
+        DisplayEmitterPanel(m_scene->m_selectedEmitter);
+
+        ImGui::End();
     }
 
-    void ParticleInspectorWindow::DrawTypeSpecificProps(EmitterBase* e)
+    // ── Helper: labeled vec3 drag ─────────────────────────────────────────────
+
+    static void DragVec3Pair(const char* label, const char* randLabel,
+                             glm::vec3& base, glm::vec3& rand,
+                             float speed = 0.01f, float lo = -1e6f, float hi = 1e6f)
     {
-        if (!ImGui::CollapsingHeader("Type Properties", ImGuiTreeNodeFlags_DefaultOpen)) return;
+        ImGui::DragFloat3(label,     glm::value_ptr(base), speed, lo, hi);
+        ImGui::DragFloat3(randLabel, glm::value_ptr(rand), speed, 0.0f, hi);
+    }
 
-        switch (e->type)
+    static void DragFloatPair(const char* label, const char* randLabel,
+                              float& base, float& rand,
+                              float speed = 0.01f, float lo = -1e6f, float hi = 1e6f)
+    {
+        ImGui::DragFloat(label,     &base, speed, lo, hi);
+        ImGui::DragFloat(randLabel, &rand, speed, 0.0f, hi);
+    }
+
+    // ── Emitter Panel ─────────────────────────────────────────────────────────
+
+    void ParticleInspectorWindow::DisplayEmitterPanel(EmitterBase* emitter)
+    {
+        // Name
+        char buf[128];
+        strncpy_s(buf, sizeof(buf), emitter->m_name.c_str(), _TRUNCATE);
+        if (ImGui::InputText("Name", buf, sizeof(buf)))
+            emitter->m_name = buf;
+
+        // Emitter type (read-only label)
+        static const char* typeNames[] = { "Point", "Sphere", "Box", "Ring" };
+        ImGui::LabelText("Emitter Type", "%s", typeNames[(int)emitter->m_type]);
+
+        ImGui::Separator();
+
+        // Spawn control
+        if (ImGui::CollapsingHeader("Emission", ImGuiTreeNodeFlags_DefaultOpen))
         {
-        case EmitterType::Point:
-            ImGui::TextDisabled("Point: no extra settings");
-            break;
+            ImGui::DragInt("Spawn Count",    &emitter->m_spawnCount,    1, 1, 1000);
+            ImGui::DragInt("Max Particles",  &emitter->m_maxParticles,  1, 1, 10000);
+            ImGui::DragFloat("Spawn Interval", &emitter->m_spawnInterval, 0.001f, 0.001f, 10.0f);
+            ImGui::DragInt("Start Frame", &emitter->m_startFrame, 1, 0, emitter->m_endFrame);
+            ImGui::DragInt("End Frame",   &emitter->m_endFrame,   1, emitter->m_startFrame, 9999);
+        }
 
+        // Shape-specific params
+        if (ImGui::CollapsingHeader("Shape", ImGuiTreeNodeFlags_DefaultOpen))
+            DisplayShapePanel(emitter);
+
+        // Particle spawn properties
+        if (ImGui::CollapsingHeader("Particle Properties", ImGuiTreeNodeFlags_DefaultOpen))
+            DisplaySpawnPropsPanel(emitter->m_spawnProps);
+    }
+
+    void ParticleInspectorWindow::DisplayShapePanel(EmitterBase* emitter)
+    {
+        switch (emitter->m_type)
+        {
         case EmitterType::Sphere:
-            if (auto* s = dynamic_cast<SphereEmitter*>(e))
-            {
-                ImGui::DragFloat("Radius##sph", &s->radius, 0.01f, 0.01f, 50.0f);
-                ImGui::Checkbox ("Converge to Center", &s->convergeToCenter);
-                if (s->convergeToCenter)
-                {
-                    ImGui::SameLine();
-                    ImGui::SetNextItemWidth(80.0f);
-                    ImGui::DragFloat("Speed##conv", &s->convergeSpeed, 0.01f, 0.01f, 50.0f);
-                }
-            }
+            if (auto* se = dynamic_cast<SphereEmitter*>(emitter))
+                ImGui::DragFloat("Radius", &se->m_radius, 0.01f, 0.0f, 100.0f);
             break;
 
         case EmitterType::Box:
-            if (auto* b = dynamic_cast<BoxEmitter*>(e))
-                ImGui::DragFloat3("Extents##box", glm::value_ptr(b->extents), 0.01f, 0.01f, 50.0f);
+            if (auto* be = dynamic_cast<BoxEmitter*>(emitter))
+                ImGui::DragFloat3("Half Extents", glm::value_ptr(be->m_halfExtents), 0.01f, 0.0f, 100.0f);
             break;
 
         case EmitterType::Ring:
-            if (auto* r = dynamic_cast<RingEmitter*>(e))
+            if (auto* re = dynamic_cast<RingEmitter*>(emitter))
             {
-                ImGui::DragFloat("Radius##ring", &r->radius, 0.01f, 0.01f, 50.0f);
-                ImGui::DragFloat("Width##ring",  &r->width,  0.01f, 0.001f, 10.0f);
+                ImGui::DragFloat("Ring Radius",    &re->m_radius,    0.01f, 0.0f, 100.0f);
+                ImGui::DragFloat("Band Width",     &re->m_bandWidth, 0.001f, 0.0f, 10.0f);
             }
             break;
 
-        case EmitterType::Ribbon:
-            if (auto* r = dynamic_cast<RibbonEmitter*>(e))
-            {
-                ImGui::DragFloat("Ribbon Width", &r->ribbonWidth, 0.01f, 0.01f, 10.0f);
-                ImGui::ColorEdit3("Ribbon Color", glm::value_ptr(r->ribbonColor));
-            }
+        default:
+            ImGui::TextDisabled("(no shape parameters)");
             break;
         }
     }
 
-    void ParticleInspectorWindow::DrawEmissionProps(EmitterBase* e)
+    void ParticleInspectorWindow::DisplaySpawnPropsPanel(EmitterSpawnProps& p)
     {
-        if (e->type == EmitterType::Ribbon) return;  // Ribbon 不使用粒子發射
-        if (!ImGui::CollapsingHeader("Emission", ImGuiTreeNodeFlags_DefaultOpen)) return;
+        // Particle type selector
+        static const char* ptNames[] = { "Sprite", "Trail", "Ring" };
+        int ptIdx = (int)p.particleType;
+        if (ImGui::Combo("Particle Type", &ptIdx, ptNames, 3))
+            p.particleType = (ParticleType)ptIdx;
 
-        ImGui::DragInt  ("Emit Count",    &e->emitCount,    1, 1, 1000);
-        ImGui::DragInt  ("Max Particles", &e->maxParticles, 1, 1, 10000);
-        ImGui::DragFloat("Interval (s)",  &e->emitInterval, 0.001f, 0.001f, 10.0f);
+        // Lifetime
+        ImGui::Separator();
+        ImGui::TextDisabled("Lifetime");
+        DragFloatPair("##lt", "##ltR", p.lifetime, p.lifetimeRand, 0.01f, 0.001f, 100.0f);
+        ImGui::SameLine(0, 4); ImGui::TextDisabled("+/-");
+
+        // Position offset
+        ImGui::Separator();
+        ImGui::TextDisabled("Init Position  /  Offset Amplitude");
+        DragVec3Pair("##pos", "##posR", p.initPos, p.initPosRand);
+
+        // Velocity
+        ImGui::TextDisabled("Init Velocity  /  Offset Amplitude");
+        DragVec3Pair("##vel", "##velR", p.initVel, p.initVelRand);
+
+        // Acceleration
+        ImGui::TextDisabled("Init Accel  /  Offset Amplitude");
+        DragVec3Pair("##acc", "##accR", p.initAccel, p.initAccelRand);
+
+        // Rotation
+        ImGui::Separator();
+        ImGui::TextDisabled("Rot / RotVel / RotAccel  (rad)");
+        DragFloatPair("Rot##v",      "Rot##r",      p.initRot,      p.initRotRand,      0.01f);
+        DragFloatPair("RotVel##v",   "RotVel##r",   p.initRotVel,   p.initRotVelRand,   0.01f);
+        DragFloatPair("RotAccel##v", "RotAccel##r", p.initRotAccel, p.initRotAccelRand, 0.01f);
+
+        // Scale
+        ImGui::Separator();
+        ImGui::TextDisabled("Scale / ScaleVel / ScaleAccel");
+        DragFloatPair("Scale##v",      "Scale##r",      p.initScale,      p.initScaleRand,      0.001f, 0.0f, 100.0f);
+        DragFloatPair("ScaleVel##v",   "ScaleVel##r",   p.initScaleVel,   p.initScaleVelRand,   0.001f);
+        DragFloatPair("ScaleAccel##v", "ScaleAccel##r", p.initScaleAccel, p.initScaleAccelRand, 0.001f);
+
+        // Appearance
+        ImGui::Separator();
+        ImGui::TextDisabled("Appearance");
+        ImGui::ColorEdit4("Color", glm::value_ptr(p.color));
+        ImGui::DragInt("Texture ID", (int*)&p.textureID, 1, 0, 65535);
+        ImGui::TextDisabled("(0 = solid color; set via GL texture ID)");
+
+        // Trail-specific
+        if (p.particleType == ParticleType::Trail)
+        {
+            ImGui::Separator();
+            ImGui::TextDisabled("Trail");
+            ImGui::DragInt("Max Trail Length", &p.maxTrailLength, 1, 2, 200);
+            ImGui::DragFloat("Trail Width",    &p.trailWidth,     0.001f, 0.001f, 10.0f);
+        }
+
+        // Ring-specific
+        if (p.particleType == ParticleType::Ring)
+        {
+            ImGui::Separator();
+            ImGui::TextDisabled("Ring Particle");
+            ImGui::DragFloat("Inner Radius", &p.ringInnerRadius, 0.01f, 0.0f, 100.0f);
+            ImGui::DragFloat("Outer Radius", &p.ringOuterRadius, 0.01f, 0.0f, 100.0f);
+            ImGui::DragInt("Segments",       &p.ringSegments,    1, 3, 128);
+        }
     }
-
-    void ParticleInspectorWindow::DrawTimelineProps(EmitterBase* e)
-    {
-        if (!ImGui::CollapsingHeader("Timeline", ImGuiTreeNodeFlags_DefaultOpen)) return;
-
-        ImGui::DragFloat("Start Time (s)", &e->startTime, 0.01f, 0.0f, e->endTime - 0.01f);
-        ImGui::DragFloat("End Time (s)",   &e->endTime,   0.01f, e->startTime + 0.01f, 3600.0f);
-    }
-
-    void ParticleInspectorWindow::DrawEmitterMotionProps(EmitterBase* e)
-    {
-        if (!ImGui::CollapsingHeader("Emitter Motion")) return;
-
-        ImGui::DragFloat3("Position##em",          glm::value_ptr(e->position),        0.01f);
-        ImGui::DragFloat3("Velocity##em",          glm::value_ptr(e->velocity),        0.01f);
-        ImGui::DragFloat3("Acceleration##em",      glm::value_ptr(e->acceleration),    0.001f);
-        ImGui::Spacing();
-
-        // 旋轉以尤拉角顯示
-        glm::vec3 euler = glm::degrees(glm::eulerAngles(e->rotation));
-        if (ImGui::DragFloat3("Rotation (Euler)", glm::value_ptr(euler), 0.5f))
-            e->rotation = glm::quat(glm::radians(euler));
-
-        ImGui::DragFloat3("Angular Velocity",  glm::value_ptr(e->angularVelocity), 0.01f);
-    }
-
-    void ParticleInspectorWindow::DrawParticleProps(EmitterBase* e)
-    {
-        if (e->type == EmitterType::Ribbon) return;
-        if (!ImGui::CollapsingHeader("Particle Settings")) return;
-
-        ImGui::DragFloat ("Life (s)",          &e->particleLife,                 0.01f, 0.01f, 60.0f);
-        ImGui::DragFloat ("Size",              &e->particleSize,                 0.001f, 0.001f, 10.0f);
-        ImGui::ColorEdit4("Color",             glm::value_ptr(e->particleColor));
-        ImGui::Spacing();
-        ImGui::DragFloat3("Init Velocity",     glm::value_ptr(e->particleInitVelocity),    0.01f);
-        ImGui::DragFloat3("Acceleration",      glm::value_ptr(e->particleAcceleration),    0.001f);
-        ImGui::DragFloat3("Angular Velocity",  glm::value_ptr(e->particleAngularVelocity), 0.01f);
-        ImGui::Checkbox  ("Rot Follows Emitter", &e->particleRotFollowEmitter);
-    }
-
-} // namespace CG
+}

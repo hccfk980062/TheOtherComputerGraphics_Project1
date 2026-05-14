@@ -1,141 +1,118 @@
+#include <algorithm>
+#include <imgui.h>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "Scene/ParticleEditorScene.h"
-#include <iostream>
 
 namespace CG
 {
+    ParticleEditorScene::ParticleEditorScene()
+        : m_camera(glm::vec3(0.0f, 2.0f, 5.0f))
+    {}
+
+    ParticleEditorScene::~ParticleEditorScene() {}
+
     bool ParticleEditorScene::Initialize(int width, int height)
     {
-        m_framebuffer = std::make_unique<Framebuffer>(width, height);
+        m_framebuffer    = std::make_unique<Framebuffer>(width, height);
+        m_billboardShader= std::make_unique<Shader>("ShaderPrograms/Particle_vertex.vert",
+                                                    "ShaderPrograms/Particle_fragement.frag");
+        m_trailShader    = std::make_unique<Shader>("ShaderPrograms/Trail_vertex.vert",
+                                                    "ShaderPrograms/Trail_fragment.frag");
 
-        m_particleShader = std::make_unique<Shader>(
-            "ShaderPrograms/Particle_vertex.vert",
-            "ShaderPrograms/Particle_fragement.frag");  // 注意：原檔名有 typo
+        m_camera.SetProjectionMatrix(width, height);
+        m_camera.configureLookAt(glm::vec3(0, -0.4f, -1.0f), glm::vec3(0, 1, 0));
 
-        m_ribbonShader = std::make_unique<Shader>(
-            "ShaderPrograms/Trail_vertex.vert",
-            "ShaderPrograms/Trail_fragment.frag");
-
-        // 設定攝影機初始位置，俯視粒子場景
-        camera.Position = glm::vec3(0.0f, 3.0f, 8.0f);
-        camera.SetProjectionMatrix(width, height);
-        camera.configureLookAt(glm::normalize(glm::vec3(0, -0.3f, -1)), glm::vec3(0, 1, 0));
-
-        m_lastTime = ImGui::GetTime();
         return true;
     }
+
+    void ParticleEditorScene::ResizeFBO(int w, int h)
+    {
+        if (w > 0 && h > 0 && m_framebuffer)
+        {
+            m_framebuffer->ResizeFramebuffer(w, h);
+            m_camera.SetProjectionMatrix(w, h);
+        }
+    }
+
+    void ParticleEditorScene::AddRootEmitter(std::unique_ptr<EmitterBase> emitter)
+    {
+        m_rootEmitters.push_back(std::move(emitter));
+    }
+
+    void ParticleEditorScene::RemoveRootEmitter(EmitterBase* emitter)
+    {
+        m_rootEmitters.erase(
+            std::remove_if(m_rootEmitters.begin(), m_rootEmitters.end(),
+                [emitter](const std::unique_ptr<EmitterBase>& e) { return e.get() == emitter; }),
+            m_rootEmitters.end());
+
+        if (m_selectedEmitter == emitter)
+            m_selectedEmitter = nullptr;
+    }
+
+    // ── Update ────────────────────────────────────────────────────────────────
 
     void ParticleEditorScene::Update()
     {
         double now = ImGui::GetTime();
-        float  dt  = (float)(now - m_lastTime);
+        float  dt  = glm::clamp((float)(now - m_lastTime), 0.0f, 0.1f);
+        m_timeAccumulated += now - m_lastTime;
         m_lastTime = now;
-        if (dt > 0.1f) dt = 0.1f;  // 限制最大跳幀，防止長時間暫停後爆炸
 
-        if (isPlaying)
+        // Advance timeline at ~66 fps (15 ms per frame), same as AnimationGroup pattern
+        if (m_isPlaying)
         {
-            currentTime += dt;
-            if (currentTime > timelineEnd)
-                currentTime = 0.0f;  // 循環播放
+            while (m_timeAccumulated >= 0.015)
+            {
+                m_timeAccumulated -= 0.015;
+                ++m_currentFrame;
+                if (m_currentFrame > m_endFrame)
+                {
+                    if (m_loopEnabled)
+                        m_currentFrame = m_startFrame;
+                    else
+                    {
+                        m_currentFrame = m_endFrame;
+                        m_isPlaying    = false;
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            m_timeAccumulated = 0.0;
         }
 
-        for (auto& e : rootEmitters)
-            e->Update(dt, currentTime);
+        for (auto& e : m_rootEmitters)
+            e->Update(dt, m_currentFrame, glm::vec3(0));
     }
+
+    // ── Render ────────────────────────────────────────────────────────────────
 
     void ParticleEditorScene::Render()
     {
-        Framebuffer* fbo = m_framebuffer.get();
+        if (!m_framebuffer) return;
 
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo->fbo);
-        glViewport(0, 0, fbo->width, fbo->height);
-        glClearColor(0.05f, 0.05f, 0.15f, 1.0f);  // 深藍背景，粒子效果更顯眼
+        glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer->fbo);
+        glViewport(0, 0, m_framebuffer->width, m_framebuffer->height);
+        glClearColor(0.05f, 0.05f, 0.12f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         glEnable(GL_DEPTH_TEST);
 
-        glm::mat4 view = camera.GetViewMatrix();
-        glm::mat4 proj = camera.GetProjectionMatrix();
+        glm::mat4 view = m_camera.GetViewMatrix();
+        glm::mat4 proj = m_camera.GetProjectionMatrix();
+        glm::vec3 camPos = m_camera.Position;
 
-        for (auto& e : rootEmitters)
-            e->Draw(m_particleShader.get(), m_ribbonShader.get(), view, proj);
+        for (auto& e : m_rootEmitters)
+            e->Draw(m_billboardShader.get(), m_trailShader.get(), view, proj, camPos);
+
+        // Ensure blend state is clean after all draws
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
-
-    EmitterBase* ParticleEditorScene::AddEmitter(EmitterType type, EmitterBase* parent)
-    {
-        std::unique_ptr<EmitterBase> emitter;
-        switch (type)
-        {
-            case EmitterType::Point:  emitter = std::make_unique<PointEmitter>();  break;
-            case EmitterType::Sphere: emitter = std::make_unique<SphereEmitter>(); break;
-            case EmitterType::Box:    emitter = std::make_unique<BoxEmitter>();    break;
-            case EmitterType::Ring:   emitter = std::make_unique<RingEmitter>();   break;
-            case EmitterType::Ribbon: emitter = std::make_unique<RibbonEmitter>(); break;
-            default: return nullptr;
-        }
-        emitter->Initialize();
-        emitter->parent = parent;
-
-        EmitterBase* raw = emitter.get();
-        if (parent)
-            parent->children.push_back(std::move(emitter));
-        else
-            rootEmitters.push_back(std::move(emitter));
-
-        return raw;
-    }
-
-    void ParticleEditorScene::RemoveEmitter(EmitterBase* target)
-    {
-        if (!target) return;
-
-        // 若被刪除的 Emitter（或其後代）是選取對象，清除選取
-        if (selectedEmitter == target || IsDescendant(selectedEmitter, target))
-            selectedEmitter = nullptr;
-
-        // 從 parent 的 children 或 rootEmitters 中移除
-        auto removeFrom = [&](std::vector<std::unique_ptr<EmitterBase>>& list)
-        {
-            for (auto it = list.begin(); it != list.end(); ++it)
-            {
-                if (it->get() == target)
-                {
-                    list.erase(it);
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        if (target->parent)
-            removeFrom(target->parent->children);
-        else
-            removeFrom(rootEmitters);
-    }
-
-    void ParticleEditorScene::CollectAll(std::vector<EmitterBase*>& out) const
-    {
-        for (auto& e : rootEmitters)
-            CollectRecursive(e.get(), out);
-    }
-
-    bool ParticleEditorScene::IsDescendant(EmitterBase* possible, EmitterBase* ancestor) const
-    {
-        if (!possible) return false;
-        EmitterBase* curr = possible->parent;
-        while (curr)
-        {
-            if (curr == ancestor) return true;
-            curr = curr->parent;
-        }
-        return false;
-    }
-
-    void ParticleEditorScene::CollectRecursive(EmitterBase* e, std::vector<EmitterBase*>& out)
-    {
-        out.push_back(e);
-        for (auto& child : e->children)
-            CollectRecursive(child.get(), out);
-    }
-
-} // namespace CG
+}

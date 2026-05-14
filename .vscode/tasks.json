@@ -1,0 +1,88 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "CMake: Configure (x64-debug)",
+            "type": "shell",
+            "command": "cmake --preset x64-debug",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": "$msCompile",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "CMake: Build (x64-debug)",
+            "type": "shell",
+            "command": "cmake --build ${workspaceFolder}/out/build/x64-debug",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": "$msCompile",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "CMake: Configure + Build (x64-debug)",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "CMake: Configure (x64-debug)",
+                "CMake: Build (x64-debug)"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": "build"
+        },
+        {
+            "label": "CMake: Configure (x64-release)",
+            "type": "shell",
+            "command": "cmake --preset x64-release",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": "$msCompile",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "CMake: Build (x64-release)",
+            "type": "shell",
+            "command": "cmake --build ${workspaceFolder}/out/build/x64-release",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": "$msCompile",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "CMake: Clean (x64-debug)",
+            "type": "shell",
+            "command": "cmake --build ${workspaceFolder}/out/build/x64-debug --target clean",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        }
+    ]
+}

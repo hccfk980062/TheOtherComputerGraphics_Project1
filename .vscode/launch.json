@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug (x64-debug)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/out/build/x64-debug/Project1_CMAKE.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/out/build/x64-debug",
+            "environment": [],
+            "console": "externalTerminal",
+            "preLaunchTask": "CMake: Build (x64-debug)",
+            "visualizerFile": "${workspaceFolder}/.vscode/my.natvis"
+        },
+        {
+            "name": "Debug without Build (x64-debug)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/out/build/x64-debug/Project1_CMAKE.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/out/build/x64-debug",
+            "environment": [],
+            "console": "externalTerminal"
+        }
+    ]
+}

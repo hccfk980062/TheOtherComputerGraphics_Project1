@@ -81,8 +81,8 @@ namespace CG
         sequencerWindow->SetTargetScene(mainScene.get());
         sequencerWindow->SetCommandStack(&commandStack);
 
-        particleEditorWindow = std::make_unique<ParticleEditorWindow>();
-        particleEditorWindow->Initialize();
+        m_particleEditorWindow = std::make_unique<ParticleEditorWindow>();
+        m_particleEditorWindow->Initialize();
 
         // ── 訂閱「物件選取」事件：同步更新 mainScene->selectedObject ─────────
         // ViewportWindow（顏色拾取）和 HierarchyWindow（樹狀點擊）都會發布此事件
@@ -143,7 +143,7 @@ namespace CG
             sequencerWindow->Display();
 
             if (m_showParticleEditor)
-                particleEditorWindow->Display();
+                m_particleEditorWindow->Display();
 
             // 將 ImGui 繪製資料提交至 GPU
             ImGui::Render();
@@ -209,7 +209,8 @@ namespace CG
         {
             if (ImGui::BeginMenu("Tools"))
             {
-                ImGui::MenuItem("Particle Editor", nullptr, &m_showParticleEditor);
+                if (ImGui::MenuItem("Particle Editor", nullptr, m_showParticleEditor))
+                    m_showParticleEditor = !m_showParticleEditor;
                 ImGui::EndMenu();
             }
             ImGui::EndMenuBar();

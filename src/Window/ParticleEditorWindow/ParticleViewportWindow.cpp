@@ -1,86 +1,96 @@
+#include <array>
+#include <imgui.h>
+
 #include "Window/ParticleEditorWindow/ParticleViewportWindow.h"
 
 namespace CG
 {
-    void ParticleViewportWindow::Display(ParticleEditorScene* scene)
-    {
-        ImVec2 size = ImGui::GetContentRegionAvail();
-        int w = (int)size.x;
-        int h = (int)size.y;
+    ParticleViewportWindow::ParticleViewportWindow()  {}
+    ParticleViewportWindow::~ParticleViewportWindow() {}
 
-        if (w <= 0 || h <= 0)
+    bool ParticleViewportWindow::Initialize() { return true; }
+
+    void ParticleViewportWindow::SyncFBO()
+    {
+        if (!m_scene) return;
+        if (m_lastWidth > 0 && m_lastHeight > 0)
+            m_scene->ResizeFBO(m_lastWidth, m_lastHeight);
+    }
+
+    void ParticleViewportWindow::UpdateScreen()
+    {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+        bool visible = ImGui::Begin("Particle Viewport");
+        ImGui::PopStyleVar();
+
+        if (!visible || !m_scene)
         {
-            ImGui::TextDisabled("(Viewport too small)");
+            ImGui::End();
             return;
         }
 
-        // 同步 FBO 尺寸 → 更新場景 → 渲染到 FBO
-        SyncFBOSize(scene, w, h);
-        scene->Update();
-        scene->Render();
+        ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+        if (viewportSize.x < 1.0f) viewportSize.x = 1.0f;
+        if (viewportSize.y < 1.0f) viewportSize.y = 1.0f;
 
-        // 以 ImGui::Image 顯示 FBO 色彩貼圖（Y 軸翻轉：OpenGL 原點在左下）
-        Framebuffer* fbo = scene->GetFramebuffer();
-        ImGui::Image(
-            (ImTextureID)(intptr_t)fbo->colorTexture,
-            size,
-            ImVec2(0, 1), ImVec2(1, 0));
+        // Record size for next frame's FBO sync
+        m_lastWidth  = (int)viewportSize.x;
+        m_lastHeight = (int)viewportSize.y;
 
-        HandleCameraInput(scene);
-    }
-
-    void ParticleViewportWindow::SyncFBOSize(ParticleEditorScene* scene, int w, int h)
-    {
-        Framebuffer* fbo = scene->GetFramebuffer();
-        if (fbo->width != w || fbo->height != h)
+        Framebuffer* fbo = m_scene->GetFramebuffer();
+        if (fbo)
         {
-            fbo->ResizeFramebuffer(w, h);
-            scene->camera.SetProjectionMatrix(w, h);
+            ImVec2 screenPos = ImGui::GetCursorScreenPos();
+            ImGui::GetWindowDrawList()->AddImage(
+                (ImTextureID)(intptr_t)fbo->colorTexture,
+                screenPos,
+                ImVec2(screenPos.x + viewportSize.x, screenPos.y + viewportSize.y),
+                ImVec2(0, 1), ImVec2(1, 0)  // V-flip for OpenGL coordinate system
+            );
         }
-    }
 
-    void ParticleViewportWindow::HandleCameraInput(ParticleEditorScene* scene)
-    {
-        if (!ImGui::IsItemHovered()) return;
-
-        ImGuiIO& io = ImGui::GetIO();
-
-        // 右鍵拖曳：旋轉攝影機
-        if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
+        // Camera keyboard input (WASDQE when window is focused)
+        bool focused = ImGui::IsWindowFocused();
+        if (focused)
         {
-            if (!m_rightMouseDown)
+            std::array<bool, 6> keys = {
+                ImGui::IsKeyDown(ImGuiKey_W),
+                ImGui::IsKeyDown(ImGuiKey_S),
+                ImGui::IsKeyDown(ImGuiKey_A),
+                ImGui::IsKeyDown(ImGuiKey_D),
+                ImGui::IsKeyDown(ImGuiKey_Q),
+                ImGui::IsKeyDown(ImGuiKey_E)
+            };
+            float dt = ImGui::GetIO().DeltaTime;
+            m_scene->m_camera.ProcessKeyboard(keys, dt);
+        }
+
+        // Camera mouse rotation (right-mouse drag)
+        bool hovered = ImGui::IsWindowHovered();
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && hovered)
+        {
+            m_rightMouseDown = true;
+            ImVec2 mp = ImGui::GetMousePos();
+            m_lastMouseX = mp.x;
+            m_lastMouseY = mp.y;
+        }
+        if (m_rightMouseDown)
+        {
+            if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
             {
-                m_rightMouseDown = true;
-                m_lastMouseX = io.MousePos.x;
-                m_lastMouseY = io.MousePos.y;
+                m_rightMouseDown = false;
             }
             else
             {
-                float dx = io.MousePos.x - m_lastMouseX;
-                float dy = io.MousePos.y - m_lastMouseY;
-                m_lastMouseX = io.MousePos.x;
-                m_lastMouseY = io.MousePos.y;
-                scene->camera.ProcessMouseMovement(dx, -dy);
-
-                std::array<bool, 6> keys = {
-                   ImGui::IsKeyDown(ImGuiKey_W), ImGui::IsKeyDown(ImGuiKey_S),
-                   ImGui::IsKeyDown(ImGuiKey_A), ImGui::IsKeyDown(ImGuiKey_D),
-                   ImGui::IsKeyDown(ImGuiKey_Q), ImGui::IsKeyDown(ImGuiKey_E)
-                };
-                scene->camera.ProcessKeyboard(keys, 0.05);
+                ImVec2 mp = ImGui::GetMousePos();
+                float dx =  (mp.x - m_lastMouseX);
+                float dy = -(mp.y - m_lastMouseY);  // invert Y for look-up
+                m_scene->m_camera.ProcessMouseMovement(dx, dy);
+                m_lastMouseX = mp.x;
+                m_lastMouseY = mp.y;
             }
         }
-        else
-        {
-            m_rightMouseDown = false;
-        }
 
-        // 滾輪：前後縮放
-        if (io.MouseWheel != 0.0f)
-        {
-            glm::vec3 dir = scene->camera.Front * io.MouseWheel * 0.5f;
-            scene->camera.Position += dir;
-        }
+        ImGui::End();
     }
-
-} // namespace CG
+}

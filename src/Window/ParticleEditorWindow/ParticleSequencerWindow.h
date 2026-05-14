@@ -1,20 +1,28 @@
 #pragma once
 #include <imgui.h>
 #include <ImNeoSequencer/imgui_neo_sequencer.h>
-#include <ImNeoSequencer/imgui_neo_internal.h>
 #include "Scene/ParticleEditorScene.h"
 
 namespace CG
 {
-    // 時間軸視窗：單一 NeoSequencer，每個 Emitter 顯示為一條軌道
-    // 軌道上有兩個關鍵幀標記 Emitter 的 startTime / endTime
+    // Single-timeline sequencer for the particle editor.
+    // Each emitter has two keyframe markers (startFrame / endFrame)
+    // that define when it is allowed to emit new particles.
     class ParticleSequencerWindow
     {
     public:
-        void Display(ParticleEditorScene* scene);
+        ParticleSequencerWindow();
+        ~ParticleSequencerWindow();
+
+        bool Initialize();
+        void Display();
+
+        void SetScene(ParticleEditorScene* scene) { m_scene = scene; }
 
     private:
-        static constexpr int FPS = 60;  // 時間軸每秒的幀數
-    };
+        ParticleEditorScene* m_scene = nullptr;
 
-} // namespace CG
+        // Adds NeoTimeline rows recursively for an emitter and its child templates
+        void DrawEmitterTimeline(EmitterBase* emitter);
+    };
+}
