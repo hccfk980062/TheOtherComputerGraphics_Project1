@@ -13,6 +13,8 @@ namespace CG
         shaderProgram_worldObject = std::make_unique<Shader>("ShaderPrograms/shader_worldObject_vertex.vert",   "ShaderPrograms/shader_worldObject_fragment.frag");
         shaderProgram_picking     = std::make_unique<Shader>("ShaderPrograms/shader_picking_vertex.vert",       "ShaderPrograms/shader_picking_fragment.frag");
         shaderProgram_shadowDepth = std::make_unique<Shader>("ShaderPrograms/shader_shadow_depth_vertex.vert",  "ShaderPrograms/shader_shadow_depth_fragment.frag");
+        shaderProgram_skybox      = std::make_unique<Shader>("ShaderPrograms/skybox_vertex.vert",               "ShaderPrograms/skybox_fragment.frag");
+        skybox = std::make_unique<Skybox>("Textures/skyboxsun5deg.png");
         return true;
     }
 
@@ -88,10 +90,16 @@ namespace CG
         shaderProgram_worldObject->setUnifFloat("lightIntensity",  lt.intensity);
         shaderProgram_worldObject->setUnifFloat("shadowBias",      lt.shadowBias);
 
-        // 依序渲染：實體物件 → 刀光拖尾 → 粒子
+        // 依序渲染：實體物件 → 刀光拖尾 → 粒子 → 天空盒（最後以 GL_LEQUAL 繪製）
         scene->RenderObjects(shaderProgram_worldObject.get());
         scene->RenderTrails(shaderProgram_trail.get());
-        scene->RenderParticles(shaderProgram_particle.get());
+        scene->RenderParticles(shaderProgram_particle.get(), shaderProgram_trail.get());
+
+        skybox->Draw(
+            shaderProgram_skybox.get(),
+            scene->freeViewCamera.GetViewMatrix(),
+            scene->freeViewCamera.GetProjectionMatrix()
+        );
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }

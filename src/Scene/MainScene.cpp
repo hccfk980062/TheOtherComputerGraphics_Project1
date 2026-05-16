@@ -1,6 +1,8 @@
 #include <iostream>
+#include <algorithm>
 
 #include "MainScene.h"
+#include "ParticleEffects/ParticleSerializer.h"
 
 namespace CG
 {
@@ -296,18 +298,64 @@ namespace CG
         float currentTime = (float)glfwGetTime();
     }
 
-    // 粒子特效渲染：在光子刀刃隨機位置持續噴出電漿粒子
-    void MainScene::RenderParticles(Shader* particleShader)
+    void MainScene::RenderParticles(Shader* particleShader, Shader* trailShader)
     {
-        particleShader->use();
-        particleShader->setUnifMat4("view",       freeViewCamera.GetViewMatrix());
-        particleShader->setUnifMat4("projection", freeViewCamera.GetProjectionMatrix());
+        if (m_particleEmitters.empty()) return;
 
         float currentTime = (float)glfwGetTime();
-        float dt          = currentTime - lastTime;
+        float dt          = glm::clamp(currentTime - lastTime, 0.0f, 0.1f);
         lastTime = currentTime;
 
+        // Advance frame counter at 15ms/frame (same rate as ParticleEditorScene)
+        m_particleTimeAccum += dt;
+        while (m_particleTimeAccum >= 0.015f)
+        {
+            m_particleTimeAccum -= 0.015f;
+            ++m_particleFrame;
+        }
 
+        glm::mat4 view = freeViewCamera.GetViewMatrix();
+        glm::mat4 proj = freeViewCamera.GetProjectionMatrix();
+
+        for (auto& e : m_particleEmitters)
+        {
+            glm::vec3 basePos = e->m_parentSceneObject
+                ? glm::vec3(e->m_parentSceneObject->GetWorldMatrix()[3])
+                : glm::vec3(0);
+            e->Update(dt, m_particleFrame, basePos);
+            e->Draw(particleShader, trailShader, view, proj, freeViewCamera.Position);
+        }
+    }
+
+    void MainScene::LoadParticleEffect(const std::string& path)
+    {
+        auto loaded = LoadParticleEffectFromFile(path);
+        for (auto& e : loaded)
+            m_particleEmitters.push_back(std::move(e));
+    }
+
+    void MainScene::ClearParticleEffects()
+    {
+        for (auto& e : m_particleEmitters)
+            DetachEmitter(e.get());
+        m_particleEmitters.clear();
+        m_particleFrame     = 0;
+        m_particleTimeAccum = 0.0f;
+    }
+
+    void MainScene::AttachEmitter(EmitterBase* emitter, SceneObject* obj)
+    {
+        DetachEmitter(emitter);
+        emitter->m_parentSceneObject = obj;
+        obj->m_emitters.push_back(emitter);
+    }
+
+    void MainScene::DetachEmitter(EmitterBase* emitter)
+    {
+        if (!emitter->m_parentSceneObject) return;
+        auto& list = emitter->m_parentSceneObject->m_emitters;
+        list.erase(std::remove(list.begin(), list.end(), emitter), list.end());
+        emitter->m_parentSceneObject = nullptr;
     }
 
     // 遞迴走訪場景樹，依 Model* 指標將世界矩陣分組（Instanced Rendering 前置收集）

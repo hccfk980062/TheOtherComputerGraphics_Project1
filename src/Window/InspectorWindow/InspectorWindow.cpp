@@ -2,6 +2,8 @@
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <string>
+#include <ImGuiFileDialog/ImGuiFileDialog.h>
+#include "ParticleEffects/ParticleSerializer.h"
 
 namespace CG
 {
@@ -37,6 +39,11 @@ namespace CG
                     if (ImGui::BeginTabItem("Lighting"))
                     {
                         DisplayLightingPanel();
+                        ImGui::EndTabItem();
+                    }
+                    if (ImGui::BeginTabItem("Particles"))
+                    {
+                        DisplayParticlesPanel();
                         ImGui::EndTabItem();
                     }
                 }
@@ -202,6 +209,51 @@ namespace CG
             ImGui::Text("Pos: (%.1f, %.1f, %.1f)", lt.position.x, lt.position.y, lt.position.z);
         }
         ImGui::Text("Color: (%.2f, %.2f, %.2f) x %.2f", lt.color.x, lt.color.y, lt.color.z, lt.intensity);
+    }
+
+    void InspectorWindow::DisplayParticlesPanel()
+    {
+        if (!targetScene) return;
+
+        ImGui::Text("Scene Particle Effects");
+        ImGui::Separator();
+
+        int count = (int)targetScene->m_particleEmitters.size();
+        ImGui::Text("Loaded emitters: %d", count);
+        ImGui::Spacing();
+
+        if (ImGui::Button("Load from JSON...", ImVec2(-1, 0)))
+        {
+            IGFD::FileDialogConfig cfg; cfg.path = ".";
+            ImGuiFileDialog::Instance()->OpenDialog("MS_LoadParticle",
+                "Load Particle Effect", ".json", cfg);
+        }
+
+        if (ImGui::Button("Clear All##particles", ImVec2(-1, 0)))
+            targetScene->ClearParticleEffects();
+
+        // File dialog handling
+        if (ImGuiFileDialog::Instance()->Display("MS_LoadParticle", 32, ImVec2(400, 250)))
+        {
+            if (ImGuiFileDialog::Instance()->IsOk())
+                targetScene->LoadParticleEffect(
+                    ImGuiFileDialog::Instance()->GetFilePathName());
+            ImGuiFileDialog::Instance()->Close();
+        }
+
+        // Refetch the value in case of ClearParticleEffects() executed
+        count = (int)targetScene->m_particleEmitters.size();
+        if (count > 0)
+        {
+            ImGui::Spacing();
+            ImGui::TextDisabled("Root emitters:");
+            for (int i = 0; i < count; ++i)
+            {
+                const auto& e = targetScene->m_particleEmitters[i];
+                ImGui::Text("  [%d] %s (%d alive)", i,
+                    e->m_name.c_str(), e->AliveCount());
+            }
+        }
     }
 
     // IK 屬性面板：列出所有 IK 鏈，提供啟用開關、目標設定與解算參數調整

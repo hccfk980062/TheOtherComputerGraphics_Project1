@@ -8,6 +8,7 @@
 #include "FrameBuffer/ShadowMap.h"
 #include "Shader/Shader.h"
 #include "Scene/MainScene.h"
+#include "Skybox/Skybox.h"
 
 namespace CG
 {
@@ -36,6 +37,8 @@ namespace CG
         std::unique_ptr<Shader>      shaderProgram_worldObject;
         std::unique_ptr<Shader>      shaderProgram_picking;
         std::unique_ptr<Shader>      shaderProgram_shadowDepth;  // Shadow depth pass 著色器
+        std::unique_ptr<Shader>      shaderProgram_skybox;       // 天空盒著色器
+        std::unique_ptr<Skybox>      skybox;                     // 天空盒（Cross Layout Cubemap）
 
         std::unique_ptr<Framebuffer> viewportFramebuffer;
         std::unique_ptr<Framebuffer> pickingFramebuffer;

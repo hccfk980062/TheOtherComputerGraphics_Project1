@@ -1,5 +1,6 @@
 #include "HierarchyWindow.h"
-#include<imgui.h>
+#include <imgui.h>
+#include "ParticleEffects/EmitterBase.h"
 
 namespace CG
 {
@@ -33,6 +34,22 @@ namespace CG
                 // 點擊視窗空白處取消選取
                 if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered())
                     targetScene->selectedObject = nullptr;
+
+                // ── 未附加的粒子發射器區段 ────────────────────────────────────
+                bool hasUnattached = false;
+                for (auto& e : targetScene->m_particleEmitters)
+                    if (!e->m_parentSceneObject) { hasUnattached = true; break; }
+
+                if (hasUnattached)
+                {
+                    ImGui::Separator();
+                    ImGui::TextDisabled("Particle Emitters");
+                    for (auto& e : targetScene->m_particleEmitters)
+                    {
+                        if (!e->m_parentSceneObject)
+                            DrawEmitterNode(e.get());
+                    }
+                }
             }
             else
             {
@@ -51,8 +68,8 @@ namespace CG
             ImGuiTreeNodeFlags_OpenOnDoubleClick |
             ImGuiTreeNodeFlags_SpanAvailWidth;
 
-        // 葉節點（無子節點）不顯示展開圖示且不在樹狀堆疊中
-        if (obj->children.empty())
+        // 葉節點（無子節點且無附加 emitter）不顯示展開圖示且不在樹狀堆疊中
+        if (obj->children.empty() && obj->m_emitters.empty())
             flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
         if (obj == targetScene->selectedObject)
             flags |= ImGuiTreeNodeFlags_Selected;
@@ -74,8 +91,7 @@ namespace CG
             ImGui::EndDragDropSource();
         }
 
-        // 放置目標：接收拖曳的 SceneObject* 並重設父節點
-        // 防止將節點拖曳至自身子節點（會形成循環）
+        // 放置目標：接收 SceneObject 拖曳（重設父節點）或 Emitter 拖曳（附加到此物件）
         if (ImGui::BeginDragDropTarget())
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_NODE"))
@@ -84,14 +100,21 @@ namespace CG
                 if (dragged != obj && !IsAncestor(dragged, obj))
                     ReparentObject(dragged, obj);
             }
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("EMITTER_NODE"))
+            {
+                EmitterBase* emitter = *(EmitterBase**)payload->Data;
+                targetScene->AttachEmitter(emitter, obj);
+            }
             ImGui::EndDragDropTarget();
         }
 
-        // 有子節點且已展開時，遞迴繪製子節點
+        // 有子節點（或附加 emitter）且已展開時，遞迴繪製子節點與 emitter 葉節點
         if (opened && !(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
         {
             for (auto& child : obj->children)
                 DrawNode(child.get());
+            for (EmitterBase* emitter : obj->m_emitters)
+                DrawEmitterNode(emitter);
             ImGui::TreePop();
         }
     }
@@ -110,6 +133,37 @@ namespace CG
             ImGui::EndPopup();
         }
         ImGui::PopID();
+    }
+
+    // 繪製附加在 SceneObject 下的 emitter 葉節點
+    // 支援拖曳來源（EMITTER_NODE payload）與右鍵解除附加
+    void HierarchyWindow::DrawEmitterNode(EmitterBase* emitter)
+    {
+        ImGuiTreeNodeFlags flags =
+            ImGuiTreeNodeFlags_Leaf |
+            ImGuiTreeNodeFlags_NoTreePushOnOpen |
+            ImGuiTreeNodeFlags_SpanAvailWidth;
+
+        std::string label = "[P] " + emitter->m_name;
+        ImGui::TreeNodeEx((void*)(uintptr_t)emitter, flags, "%s", label.c_str());
+
+        // 右鍵選單：解除附加
+        ImGui::PushID(emitter);
+        if (ImGui::BeginPopupContextItem("##emitter_ctx"))
+        {
+            if (ImGui::MenuItem("Detach from Object"))
+                targetScene->DetachEmitter(emitter);
+            ImGui::EndPopup();
+        }
+        ImGui::PopID();
+
+        // 拖曳來源：攜帶 EmitterBase* 指標作為 payload
+        if (ImGui::BeginDragDropSource())
+        {
+            ImGui::SetDragDropPayload("EMITTER_NODE", &emitter, sizeof(EmitterBase*));
+            ImGui::Text("[P] %s", emitter->m_name.c_str());
+            ImGui::EndDragDropSource();
+        }
     }
 
     void HierarchyWindow::CreateObject()

@@ -71,6 +71,13 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         $<TARGET_FILE_DIR:${PROJECT_NAME}>/objModels
     COMMENT "複製 3D物件檔案 到輸出目錄..."
 )
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/Textures"
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/Textures
+    COMMENT "複製 貼圖檔案 到輸出目錄..."
+)
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-windows")
 
 find_package(imgui CONFIG REQUIRED)

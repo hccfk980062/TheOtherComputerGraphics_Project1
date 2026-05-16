@@ -1,8 +1,10 @@
 #include <imgui.h>
 #include <ImNeoSequencer/imgui_neo_sequencer.h>
 #include <ImNeoSequencer/imgui_neo_internal.h>
+#include <ImGuiFileDialog/ImGuiFileDialog.h>
 
 #include "Window/ParticleEditorWindow/ParticleSequencerWindow.h"
+#include "ParticleEffects/ParticleSerializer.h"
 
 namespace CG
 {
@@ -25,6 +27,24 @@ namespace CG
             ImGui::End();
             return;
         }
+
+        // ── Export / Import ───────────────────────────────────────────────────
+        if (ImGui::Button("Export"))
+        {
+            IGFD::FileDialogConfig cfg; cfg.path = "."; cfg.fileName = "particle_effect.json";
+            ImGuiFileDialog::Instance()->OpenDialog("PE_Export", "Export Particle Effect", ".json", cfg);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Import"))
+        {
+            IGFD::FileDialogConfig cfg; cfg.path = ".";
+            ImGuiFileDialog::Instance()->OpenDialog("PE_Import", "Import Particle Effect", ".json", cfg);
+        }
+
+        DoExport();
+        DoImport();
+
+        ImGui::Separator();
 
         // ── Playback controls ─────────────────────────────────────────────────
         if (ImGui::Button("|<"))
@@ -75,8 +95,33 @@ namespace CG
             ImGui::EndNeoTimeLine();
         }
 
-        // Recurse into child emitter templates
         for (auto& child : emitter->m_children)
             DrawEmitterTimeline(child.get());
+    }
+
+    void ParticleSequencerWindow::DoExport()
+    {
+        if (ImGuiFileDialog::Instance()->Display("PE_Export", 32, ImVec2(400, 250)))
+        {
+            if (ImGuiFileDialog::Instance()->IsOk() && m_scene)
+                SaveParticleEffect(ImGuiFileDialog::Instance()->GetFilePathName(),
+                                   m_scene->m_rootEmitters);
+            ImGuiFileDialog::Instance()->Close();
+        }
+    }
+
+    void ParticleSequencerWindow::DoImport()
+    {
+        if (ImGuiFileDialog::Instance()->Display("PE_Import", 32, ImVec2(400, 250)))
+        {
+            if (ImGuiFileDialog::Instance()->IsOk() && m_scene)
+            {
+                auto loaded = LoadParticleEffectFromFile(
+                    ImGuiFileDialog::Instance()->GetFilePathName());
+                for (auto& e : loaded)
+                    m_scene->m_rootEmitters.push_back(std::move(e));
+            }
+            ImGuiFileDialog::Instance()->Close();
+        }
     }
 }

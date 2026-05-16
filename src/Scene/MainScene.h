@@ -16,6 +16,7 @@
 #include "Camera/Camera.h"
 #include "IK/IKSolver.h"
 #include "Lighting/Light.h"
+#include "ParticleEffects/EmitterBase.h"
 
 namespace CG
 {
@@ -29,10 +30,20 @@ namespace CG
         auto Initialize() -> bool;  // 載入模型、建立場景樹、初始化 IK 鏈
 
         // ── 渲染介面（由 SceneRenderer 呼叫）────────────────────────────────
-        void RenderObjects(Shader* worldObjectShader);           // 渲染所有 SceneObject（Instanced）
-        void RenderParticles(Shader* particleShader);            // 渲染光子刀粒子效果
-        void RenderTrails(Shader* trailShader);                  // 渲染光子刀拖尾色帶
-        void RenderObjectsForPicking(Shader* pickingShader);     // 顏色拾取 Pass（以 ID 編碼顏色）
+        void RenderObjects(Shader* worldObjectShader);
+        void RenderParticles(Shader* particleShader, Shader* trailShader);
+        void RenderTrails(Shader* trailShader);
+        void RenderObjectsForPicking(Shader* pickingShader);
+
+        // ── 粒子特效（從 JSON 匯入，運行於 MainScene 中）────────────────────
+        std::vector<std::unique_ptr<EmitterBase>> m_particleEmitters;
+        void LoadParticleEffect(const std::string& path);   // 追加載入（不清除已有）
+        void ClearParticleEffects();                         // 清除所有已載入的特效
+
+        // 將 emitter 附加到 SceneObject 作為子物件（若已附加則先解除）
+        void AttachEmitter(EmitterBase* emitter, SceneObject* obj);
+        // 從父 SceneObject 解除 emitter 的附加關係
+        void DetachEmitter(EmitterBase* emitter);
 
         Camera    freeViewCamera;  // 自由飛行攝影機（WASD + 滑鼠右鍵）
         LightData light;           // 場景光源設定（Directional 或 Point）
@@ -67,7 +78,11 @@ namespace CG
         std::unique_ptr<Model> model_Gundam[18];
         std::unique_ptr<Model> model_photonBlade;
         std::unique_ptr<Model> model_Cube;
-        float lastTime = (float)glfwGetTime();  // 上幀時間，用於粒子 dt 計算
+        float lastTime = (float)glfwGetTime();
+
+        // Particle timeline state
+        int   m_particleFrame     = 0;
+        float m_particleTimeAccum = 0.0f;
 
         // 遞迴收集場景樹中所有物件的世界矩陣，依 Model* 分組以支援 Instanced Rendering
         void CollectInstances(SceneObject* obj, std::unordered_map<Model*, std::vector<glm::mat4>>& outMap);

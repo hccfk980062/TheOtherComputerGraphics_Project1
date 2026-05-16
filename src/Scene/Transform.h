@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <glm/glm.hpp>
 #include<glm/gtc/type_ptr.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -7,6 +8,7 @@
 
 namespace CG
 {
+    class EmitterBase;
     // 封裝位移 / 旋轉 / 縮放，並計算本地 TRS 矩陣
     struct Transform
     {
@@ -42,6 +44,7 @@ namespace CG
 
         SceneObject* parent = nullptr;  // 父節點指標；nullptr 代表根節點
         std::vector<std::unique_ptr<SceneObject>> children;
+        std::vector<EmitterBase*> m_emitters;  // 附加到此物件的粒子發射器（非擁有）
 
         // 取得世界矩陣（含快取，dirty 時才重新計算）
         // 採用懶惰求值：只在 transform 改變（MarkDirty）後才重算

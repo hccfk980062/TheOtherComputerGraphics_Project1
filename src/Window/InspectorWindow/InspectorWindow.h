@@ -23,9 +23,10 @@ namespace CG
         MainScene* targetScene = nullptr;
 
         // ── 分頁面板輔助函式 ─────────────────────────────────────────────────
-        void DisplayTransformPanel();  // 顯示並編輯選取物件的 Transform（位移/旋轉/縮放）
-        void DisplayCameraPanel();     // 顯示並編輯自由攝影機參數
-        void DisplayIKPanel();         // 顯示並編輯所有 IK 鏈的設定與狀態
-        void DisplayLightingPanel();   // 顯示並編輯光源屬性（類型、位置/方向、顏色、強度、陰影）
+        void DisplayTransformPanel();
+        void DisplayCameraPanel();
+        void DisplayIKPanel();
+        void DisplayLightingPanel();
+        void DisplayParticlesPanel();  // 匯入並管理在 MainScene 中運行的粒子特效
     };
 }

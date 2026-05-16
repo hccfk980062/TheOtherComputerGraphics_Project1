@@ -11,6 +11,8 @@
 
 namespace CG
 {
+    struct SceneObject;
+
     enum class EmitterType { Point, Sphere, Box, Ring };
 
     struct EmitterSpawnProps
@@ -64,9 +66,10 @@ namespace CG
         virtual ~EmitterBase();
 
         // Identity & UI state
-        std::string m_name = "Emitter";
-        EmitterType m_type = EmitterType::Point;
-        bool        m_open = true;  // hierarchy tree node open state
+        std::string  m_name = "Emitter";
+        EmitterType  m_type = EmitterType::Point;
+        bool         m_open = true;  // hierarchy tree node open state
+        SceneObject* m_parentSceneObject = nullptr;  // 附加的父 SceneObject（不擁有）
 
         // Emission control
         int   m_spawnCount    = 5;

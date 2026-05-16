@@ -105,6 +105,9 @@ namespace CG
         if (timelineFrame >= m_startFrame && timelineFrame <= m_endFrame)
         {
             m_spawnAccumulator += dt;
+            if(m_spawnInterval < 0.001) 
+                m_spawnInterval = 0.001;
+
             while (m_spawnAccumulator >= m_spawnInterval)
             {
                 m_spawnAccumulator -= m_spawnInterval;

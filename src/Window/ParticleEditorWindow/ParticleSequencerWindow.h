@@ -22,7 +22,8 @@ namespace CG
     private:
         ParticleEditorScene* m_scene = nullptr;
 
-        // Adds NeoTimeline rows recursively for an emitter and its child templates
         void DrawEmitterTimeline(EmitterBase* emitter);
+        void DoExport();
+        void DoImport();
     };
 }
