@@ -11,7 +11,7 @@
 
 namespace CG
 {
-    struct SceneObject;
+    struct SceneObject;  // forward declare; defined in Scene/Transform.h
 
     enum class EmitterType { Point, Sphere, Box, Ring };
 
@@ -66,10 +66,11 @@ namespace CG
         virtual ~EmitterBase();
 
         // Identity & UI state
-        std::string  m_name = "Emitter";
-        EmitterType  m_type = EmitterType::Point;
-        bool         m_open = true;  // hierarchy tree node open state
-        SceneObject* m_parentSceneObject = nullptr;  // 附加的父 SceneObject（不擁有）
+        std::string  m_name     = "Emitter";
+        EmitterType  m_type     = EmitterType::Point;
+        bool         m_open     = true;   // hierarchy tree node open state
+        SceneObject* ownerNode  = nullptr; // non-owning; set by MainScene::LoadParticleEffect
+        int          m_seqFrame = 0;       // driven by SequencerWindow; used as timelineFrame in RenderParticles
 
         // Emission control
         int   m_spawnCount    = 5;

@@ -7,6 +7,49 @@ namespace CG
 
     auto SequencerWindow::Initialize() -> bool { return true; }
 
+    void SequencerWindow::SyncAnimationGroups()
+    {
+        if (!targetScene) return;
+
+        // 移除已不存在的群組：
+        //   - 頂層非 Emitter 物件：按 rootObject.children 查找
+        //   - Emitter 物件：按 m_emitterObjects 查找，確保 Reparent 後不會誤刪群組
+        animationGroups.erase(
+            std::remove_if(animationGroups.begin(), animationGroups.end(),
+                [&](const AnimationGroup& g)
+                {
+                    for (auto& childPtr : targetScene->rootObject.children)
+                        if (childPtr->animationGroupName == g.groupName) return false;
+                    for (auto* emObj : targetScene->m_emitterObjects)
+                        if (emObj->animationGroupName == g.groupName) return false;
+                    return true;
+                }),
+            animationGroups.end());
+
+        // 為新增的頂層 SceneObject 補建 AnimationGroup
+        for (auto& childPtr : targetScene->rootObject.children)
+        {
+            const std::string& gName = childPtr->animationGroupName;
+            bool found = false;
+            for (auto& g : animationGroups)
+                if (g.groupName == gName) { found = true; break; }
+            if (!found)
+                CreateAnimationGroup(childPtr.get());
+        }
+
+        // 為所有 Emitter 補建 AnimationGroup（它們可能已被 Reparent 至非根層級，
+        // 因此不在 rootObject.children 中，但仍需維持自己的時間軸）
+        for (auto* emObj : targetScene->m_emitterObjects)
+        {
+            const std::string& gName = emObj->animationGroupName;
+            bool found = false;
+            for (auto& g : animationGroups)
+                if (g.groupName == gName) { found = true; break; }
+            if (!found)
+                CreateAnimationGroup(emObj);
+        }
+    }
+
     void SequencerWindow::Display()
     {
         if (!ImGui::Begin("Animation Sequencer", nullptr))
@@ -21,6 +64,9 @@ namespace CG
             ImGui::End();
             return;
         }
+
+        // 每幀同步：補建新 Emitter 的軌道、移除已清除 Emitter 的軌道
+        SyncAnimationGroups();
 
         // ── 全域匯出入按鈕 ────────────────────────────────────────────────────
         if (ImGui::Button("Export ALL"))
@@ -86,6 +132,11 @@ namespace CG
 
             // 無論是否展開都推進播放（折疊時仍繼續計時）
             group.AdvancePlayback();
+
+            // 將 Sequencer 當前幀寫入所有 Emitter 節點，使粒子發射時間窗與時間軸同步
+            for (auto& track : group.tracks)
+                if (track.linkedObject && track.linkedObject->emitter)
+                    track.linkedObject->emitter->m_seqFrame = group.currentFrame;
 
             if (headerOpen)
             {
@@ -306,7 +357,7 @@ namespace CG
 
     // ─── JSON 匯出入實作 ───────────────────────────────────────────────────────
 
-    // 將所有動畫群組（含播放設定）序列化並寫入 JSON 檔
+    // 將所有動畫群組（含播放設定）序0列化並寫入 JSON 檔
     void SequencerWindow::ExportAllToJson(const std::string& filepath)
     {
         std::ofstream file(filepath);

@@ -22,11 +22,10 @@ namespace CG
     private:
         MainScene* targetScene = nullptr;
 
-        void DrawNode(SceneObject* obj);               // 遞迴繪製一個節點及其子節點
-        void DrawContextMenu(SceneObject* obj);        // 右鍵選單（Create Child / Delete）
-        void DrawEmitterNode(EmitterBase* emitter);    // 繪製附加在 SceneObject 下的 emitter 葉節點
-        void CreateObject();                           // 建立新空物件（尚未實作）
-        void DeleteObject();                           // 刪除物件（尚未實作）
+        void DrawNode(SceneObject* obj);           // 遞迴繪製一個節點及其子節點
+        void DrawContextMenu(SceneObject* obj);    // 右鍵選單（Create Child / Delete）
+        void CreateObject();                       // 建立新空物件（尚未實作）
+        void DeleteObject();                       // 刪除物件（尚未實作）
 
         // 重設父節點（委派至 MainScene::ReparentObject，保持世界座標不變）
         void ReparentObject(SceneObject* obj, SceneObject* newParent);

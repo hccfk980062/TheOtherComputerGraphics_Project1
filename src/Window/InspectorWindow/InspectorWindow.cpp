@@ -230,7 +230,13 @@ namespace CG
         }
 
         if (ImGui::Button("Clear All##particles", ImVec2(-1, 0)))
+        {
+            if(targetScene->selectedObject->objectType == 2)
+                targetScene->selectedObject = nullptr;
             targetScene->ClearParticleEffects();
+        }
+        
+            
 
         // File dialog handling
         if (ImGuiFileDialog::Instance()->Display("MS_LoadParticle", 32, ImVec2(400, 250)))
@@ -246,12 +252,13 @@ namespace CG
         if (count > 0)
         {
             ImGui::Spacing();
-            ImGui::TextDisabled("Root emitters:");
+            ImGui::TextDisabled("Root emitters  (drag nodes in Hierarchy to reparent):");
             for (int i = 0; i < count; ++i)
             {
                 const auto& e = targetScene->m_particleEmitters[i];
-                ImGui::Text("  [%d] %s (%d alive)", i,
-                    e->m_name.c_str(), e->AliveCount());
+                const char* nodeName = e->ownerNode ? e->ownerNode->objectName.c_str() : "(no node)";
+                ImGui::Text("  [%d] %s  alive=%d  node=%s",
+                    i, e->m_name.c_str(), e->AliveCount(), nodeName);
             }
         }
     }

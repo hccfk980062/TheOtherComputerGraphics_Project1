@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vector>
 #include <glm/glm.hpp>
 #include<glm/gtc/type_ptr.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -8,7 +7,9 @@
 
 namespace CG
 {
-    class EmitterBase;
+    class Model;        // forward declare; defined in Model/ModelLoader.h
+    class EmitterBase;  // forward declare; defined in ParticleEffects/EmitterBase.h
+
     // 封裝位移 / 旋轉 / 縮放，並計算本地 TRS 矩陣
     struct Transform
     {
@@ -38,13 +39,13 @@ namespace CG
         std::string objectName;               // 顯示名稱（格式：groupName_serializedName）
         std::string animationGroupName;       // 所屬動畫群組名稱（例如 "Gundam_0"）
         std::string animationSerializedName;  // 此節點在 JSON 序列化時使用的名稱
-        Transform   transform;                // Local transform（相對於父節點）
-        Model*      model      = nullptr;     // 指向渲染模型；nullptr 代表空節點
-        int         objectType = 0;           // 物件類型：0 = 空節點，1 = 一般模型物件
+        Transform    transform;                // Local transform（相對於父節點）
+        Model*       model      = nullptr;    // 指向渲染模型；nullptr 代表空節點
+        EmitterBase* emitter    = nullptr;    // non-owning；非 null 代表此節點為粒子 Emitter 節點
+        int          objectType = 0;          // 物件類型：0 = 空節點，1 = 一般模型物件，2 = Emitter 節點
 
         SceneObject* parent = nullptr;  // 父節點指標；nullptr 代表根節點
         std::vector<std::unique_ptr<SceneObject>> children;
-        std::vector<EmitterBase*> m_emitters;  // 附加到此物件的粒子發射器（非擁有）
 
         // 取得世界矩陣（含快取，dirty 時才重新計算）
         // 採用懶惰求值：只在 transform 改變（MarkDirty）後才重算

@@ -37,13 +37,9 @@ namespace CG
 
         // ── 粒子特效（從 JSON 匯入，運行於 MainScene 中）────────────────────
         std::vector<std::unique_ptr<EmitterBase>> m_particleEmitters;
-        void LoadParticleEffect(const std::string& path);   // 追加載入（不清除已有）
-        void ClearParticleEffects();                         // 清除所有已載入的特效
-
-        // 將 emitter 附加到 SceneObject 作為子物件（若已附加則先解除）
-        void AttachEmitter(EmitterBase* emitter, SceneObject* obj);
-        // 從父 SceneObject 解除 emitter 的附加關係
-        void DetachEmitter(EmitterBase* emitter);
+        std::vector<SceneObject*>                 m_emitterObjects;   // non-owning refs，供清除時追蹤
+        void LoadParticleEffect(const std::string& path);   // 追加載入，同時建立對應 SceneObject
+        void ClearParticleEffects();                         // 清除所有特效及其 SceneObject
 
         Camera    freeViewCamera;  // 自由飛行攝影機（WASD + 滑鼠右鍵）
         LightData light;           // 場景光源設定（Directional 或 Point）

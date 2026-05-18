@@ -319,10 +319,16 @@ namespace CG
 
         for (auto& e : m_particleEmitters)
         {
-            glm::vec3 basePos = e->m_parentSceneObject
-                ? glm::vec3(e->m_parentSceneObject->GetWorldMatrix()[3])
+            // 若 Emitter 已掛載在 SceneObject 下，以該節點的世界座標作為粒子噴射原點
+            glm::vec3 basePos = e->ownerNode
+                ? glm::vec3(e->ownerNode->GetWorldMatrix()[3])
                 : glm::vec3(0);
-            e->Update(dt, m_particleFrame, basePos);
+
+            // Sequencer 管理的 Emitter 使用 m_seqFrame（由 SequencerWindow 每幀寫入），
+            // 這樣發射時間窗（m_startFrame~m_endFrame）才會跟隨時間軸播放/暫停/拖曳
+            int frame = e->ownerNode ? e->m_seqFrame : m_particleFrame;
+
+            e->Update(dt, frame, basePos);
             e->Draw(particleShader, trailShader, view, proj, freeViewCamera.Position);
         }
     }
@@ -331,31 +337,50 @@ namespace CG
     {
         auto loaded = LoadParticleEffectFromFile(path);
         for (auto& e : loaded)
+        {
+            // 為每個 Emitter 建立一個 SceneObject 節點，掛在場景根下
+            auto objPtr = std::make_unique<SceneObject>();
+            objPtr->id                      = objectCount++;
+            objPtr->objectName              = e->m_name;
+            objPtr->animationGroupName      = e->m_name;
+            objPtr->animationSerializedName = e->m_name;
+            objPtr->objectType              = 2;     // Emitter 節點
+            objPtr->emitter                 = e.get();
+            e->ownerNode                    = objPtr.get();
+
+            m_emitterObjects.push_back(objPtr.get());
+            ObjectList.push_back(objPtr.get());
+            rootObject.children.push_back(std::move(objPtr));
+
             m_particleEmitters.push_back(std::move(e));
+        }
     }
 
     void MainScene::ClearParticleEffects()
     {
+        // 先解除雙向指標，防止懸掛參考
         for (auto& e : m_particleEmitters)
-            DetachEmitter(e.get());
+            e->ownerNode = nullptr;
+
+        // 從場景樹和 ObjectList 中移除所有 Emitter SceneObject
+        for (SceneObject* emObj : m_emitterObjects)
+        {
+            ObjectList.erase(
+                std::remove(ObjectList.begin(), ObjectList.end(), emObj),
+                ObjectList.end());
+
+            SceneObject* parent = emObj->parent ? emObj->parent : &rootObject;
+            auto& siblings = parent->children;
+            siblings.erase(
+                std::remove_if(siblings.begin(), siblings.end(),
+                    [emObj](const auto& c) { return c.get() == emObj; }),
+                siblings.end());
+        }
+        m_emitterObjects.clear();
+
         m_particleEmitters.clear();
         m_particleFrame     = 0;
         m_particleTimeAccum = 0.0f;
-    }
-
-    void MainScene::AttachEmitter(EmitterBase* emitter, SceneObject* obj)
-    {
-        DetachEmitter(emitter);
-        emitter->m_parentSceneObject = obj;
-        obj->m_emitters.push_back(emitter);
-    }
-
-    void MainScene::DetachEmitter(EmitterBase* emitter)
-    {
-        if (!emitter->m_parentSceneObject) return;
-        auto& list = emitter->m_parentSceneObject->m_emitters;
-        list.erase(std::remove(list.begin(), list.end(), emitter), list.end());
-        emitter->m_parentSceneObject = nullptr;
     }
 
     // 遞迴走訪場景樹，依 Model* 指標將世界矩陣分組（Instanced Rendering 前置收集）

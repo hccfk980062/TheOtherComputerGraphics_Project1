@@ -90,16 +90,21 @@ namespace CG
         shaderProgram_worldObject->setUnifFloat("lightIntensity",  lt.intensity);
         shaderProgram_worldObject->setUnifFloat("shadowBias",      lt.shadowBias);
 
-        // 依序渲染：實體物件 → 刀光拖尾 → 粒子 → 天空盒（最後以 GL_LEQUAL 繪製）
+        // 渲染順序：
+        //   1. 不透明物件（寫入 depth buffer）
+        //   2. 天空盒（GL_LEQUAL，不寫 depth，填補無物件區域的背景色）
+        //   3. 半透明物件 Trail / 粒子（不寫 depth，以 src_alpha 混色疊加）
+        // 若天空盒在粒子之後繪製，GL_LEQUAL 會在粒子的 depth=1.0 區域通過並蓋掉粒子色
         scene->RenderObjects(shaderProgram_worldObject.get());
-        scene->RenderTrails(shaderProgram_trail.get());
-        scene->RenderParticles(shaderProgram_particle.get(), shaderProgram_trail.get());
 
         skybox->Draw(
             shaderProgram_skybox.get(),
             scene->freeViewCamera.GetViewMatrix(),
             scene->freeViewCamera.GetProjectionMatrix()
         );
+
+        scene->RenderTrails(shaderProgram_trail.get());
+        scene->RenderParticles(shaderProgram_particle.get(), shaderProgram_trail.get());
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }

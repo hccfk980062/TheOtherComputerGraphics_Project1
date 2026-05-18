@@ -317,6 +317,9 @@ namespace CG
         // 本幀序列器渲染期間收集的「待刪除關鍵幀」，EndNeoSequencer 後批次執行
         std::vector<std::pair<AnimationTrack*, KeyframeData>> m_pendingDeleteKeyframes;
 
+        // 同步場景中的頂層物件與 animationGroups：補建新增的、移除已不存在的
+        void SyncAnimationGroups();
+
         // ── JSON 匯出入 ───────────────────────────────────────────────────────
         void ExportAllToJson(const std::string& filepath);
         void ImportAllFromJson(const std::string& filepath);
