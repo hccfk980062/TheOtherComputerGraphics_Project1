@@ -14,7 +14,10 @@ namespace CG
         shaderProgram_picking     = std::make_unique<Shader>("ShaderPrograms/shader_picking_vertex.vert",       "ShaderPrograms/shader_picking_fragment.frag");
         shaderProgram_shadowDepth = std::make_unique<Shader>("ShaderPrograms/shader_shadow_depth_vertex.vert",  "ShaderPrograms/shader_shadow_depth_fragment.frag");
         shaderProgram_skybox      = std::make_unique<Shader>("ShaderPrograms/skybox_vertex.vert",               "ShaderPrograms/skybox_fragment.frag");
+        shaderProgram_water       = std::make_unique<Shader>("ShaderPrograms/water_vertex.vert",                 "ShaderPrograms/water_fragment.frag");
         skybox = std::make_unique<Skybox>("Textures/skyboxsun5deg.png");
+        waterPlane = std::make_unique<WaterPlane>();
+        waterPlane->Initialize(width, height);
         return true;
     }
 
@@ -52,7 +55,6 @@ namespace CG
     void SceneRenderer::RenderScene(MainScene* scene)
     {
         // ── Shadow Depth Pass ──────────────────────────────────────────────────
-        // 從光源視角渲染整個場景，僅寫入深度值到 shadowMapBuffer
         lightSpaceMatrix = ComputeLightSpaceMatrix(scene->light);
 
         glViewport(0, 0, shadowMapBuffer->width, shadowMapBuffer->height);
@@ -62,8 +64,62 @@ namespace CG
 
         shaderProgram_shadowDepth->use();
         shaderProgram_shadowDepth->setUnifMat4("lightSpaceMatrix", lightSpaceMatrix);
-        // RenderObjects 內部會再次呼叫 use()（no-op）並嘗試設 view/projection（無此 uniform 則靜默略過）
         scene->RenderObjects(shaderProgram_shadowDepth.get());
+
+        // ── Reflection Pass ────────────────────────────────────────────────────
+        // 鏡像相機翻轉至水面以下，只渲染水面以上的物件
+        {
+            const Camera& cam = scene->freeViewCamera;
+            float wh = WaterPlane::HEIGHT;
+
+            glm::vec3 refPos   = glm::vec3(cam.Position.x,
+                                           2.0f * wh - cam.Position.y,
+                                           cam.Position.z);
+            glm::vec3 refFront = glm::vec3(cam.Front.x, -cam.Front.y, cam.Front.z);
+            glm::vec3 refUp    = glm::vec3(cam.Up.x,    -cam.Up.y,    cam.Up.z);
+            glm::mat4 refView  = glm::lookAt(refPos, refPos + refFront, refUp);
+
+            // Resize if viewport changed
+            if (waterPlane->reflectionFBO->width  != viewportFramebuffer->width ||
+                waterPlane->reflectionFBO->height != viewportFramebuffer->height)
+            {
+                waterPlane->reflectionFBO->ResizeFramebuffer(
+                    viewportFramebuffer->width, viewportFramebuffer->height);
+            }
+
+            glBindFramebuffer(GL_FRAMEBUFFER, waterPlane->reflectionFBO->fbo);
+            glViewport(0, 0, waterPlane->reflectionFBO->width, waterPlane->reflectionFBO->height);
+            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glEnable(GL_DEPTH_TEST);
+
+            // Reflection flips winding — cull front faces so back-faces render correctly
+            glCullFace(GL_FRONT);
+
+            const LightData& lt = scene->light;
+            glActiveTexture(GL_TEXTURE4);
+            glBindTexture(GL_TEXTURE_2D, shadowMapBuffer->depthTexture);
+
+            shaderProgram_worldObject->use();
+            shaderProgram_worldObject->setUnifInt  ("shadowMap",        4);
+            shaderProgram_worldObject->setUnifMat4 ("lightSpaceMatrix", lightSpaceMatrix);
+            shaderProgram_worldObject->setUnifInt  ("lightType",        static_cast<int>(lt.type));
+            shaderProgram_worldObject->setUnifVec3 ("lightPosition",    lt.position.x,  lt.position.y,  lt.position.z);
+            shaderProgram_worldObject->setUnifVec3 ("lightDirection",   lt.direction.x, lt.direction.y, lt.direction.z);
+            shaderProgram_worldObject->setUnifVec3 ("lightColor",       lt.color.x,     lt.color.y,     lt.color.z);
+            shaderProgram_worldObject->setUnifFloat("lightIntensity",   lt.intensity);
+            shaderProgram_worldObject->setUnifFloat("shadowBias",       lt.shadowBias);
+            // Clip plane: only render geometry above water (y > wh)
+            shaderProgram_worldObject->setUnifVec4 ("clipPlane",        0.0f, 1.0f, 0.0f, -wh);
+
+            glEnable(GL_CLIP_DISTANCE0);
+            scene->RenderObjects(shaderProgram_worldObject.get(), refView);
+            skybox->Draw(shaderProgram_skybox.get(), refView,
+                         scene->freeViewCamera.GetProjectionMatrix());
+            glDisable(GL_CLIP_DISTANCE0);
+
+            glCullFace(GL_BACK);
+        }
 
         // ── Main Phong Render Pass ─────────────────────────────────────────────
         glBindFramebuffer(GL_FRAMEBUFFER, viewportFramebuffer->fbo);
@@ -74,7 +130,6 @@ namespace CG
 
         scene->freeViewCamera.SetProjectionMatrix(viewportFramebuffer->width, viewportFramebuffer->height);
 
-        // 將 shadow depth texture 綁定至 texture unit 4（0~3 由材質貼圖使用）
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_2D, shadowMapBuffer->depthTexture);
 
@@ -89,12 +144,8 @@ namespace CG
         shaderProgram_worldObject->setUnifVec3 ("lightColor",      lt.color.x,     lt.color.y,     lt.color.z);
         shaderProgram_worldObject->setUnifFloat("lightIntensity",  lt.intensity);
         shaderProgram_worldObject->setUnifFloat("shadowBias",      lt.shadowBias);
+        shaderProgram_worldObject->setUnifVec4 ("clipPlane",       0.0f, 0.0f, 0.0f, 0.0f);  // disabled
 
-        // 渲染順序：
-        //   1. 不透明物件（寫入 depth buffer）
-        //   2. 天空盒（GL_LEQUAL，不寫 depth，填補無物件區域的背景色）
-        //   3. 半透明物件 Trail / 粒子（不寫 depth，以 src_alpha 混色疊加）
-        // 若天空盒在粒子之後繪製，GL_LEQUAL 會在粒子的 depth=1.0 區域通過並蓋掉粒子色
         scene->RenderObjects(shaderProgram_worldObject.get());
 
         skybox->Draw(
@@ -103,7 +154,31 @@ namespace CG
             scene->freeViewCamera.GetProjectionMatrix()
         );
 
-        scene->RenderTrails(shaderProgram_trail.get());
+        // ── Water Surface (semi-transparent, after skybox, before particles) ──
+        {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glDepthMask(GL_FALSE);  // don't write depth for transparent water
+
+            float time = static_cast<float>(glfwGetTime());
+            glm::vec3 lightDir = (lt.type == LightData::Type::Directional)
+                               ? lt.direction
+                               : glm::normalize(lt.position - glm::vec3(0.0f));
+
+            waterPlane->Draw(
+                shaderProgram_water.get(),
+                scene->freeViewCamera.GetViewMatrix(),
+                scene->freeViewCamera.GetProjectionMatrix(),
+                scene->freeViewCamera.Position,
+                time,
+                waterPlane->reflectionFBO->colorTexture,
+                lightDir, lt.color * lt.intensity
+            );
+
+            glDepthMask(GL_TRUE);
+            glDisable(GL_BLEND);
+        }
+
         scene->RenderParticles(shaderProgram_particle.get(), shaderProgram_trail.get());
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

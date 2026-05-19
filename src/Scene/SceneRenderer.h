@@ -9,6 +9,7 @@
 #include "Shader/Shader.h"
 #include "Scene/MainScene.h"
 #include "Skybox/Skybox.h"
+#include "Water/WaterPlane.h"
 
 namespace CG
 {
@@ -43,6 +44,8 @@ namespace CG
         std::unique_ptr<Framebuffer> viewportFramebuffer;
         std::unique_ptr<Framebuffer> pickingFramebuffer;
         std::unique_ptr<ShadowMap>   shadowMapBuffer;             // 2048×2048 深度貼圖 FBO
+        std::unique_ptr<Shader>      shaderProgram_water;
+        std::unique_ptr<WaterPlane>  waterPlane;
 
         glm::mat4 lightSpaceMatrix = glm::mat4(1.0f);            // 光源空間矩陣（每幀更新）
 

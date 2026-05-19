@@ -12,6 +12,7 @@ out vec4 vFragPosLightSpace;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 lightSpaceMatrix;
+uniform vec4 clipPlane;
 
 uniform int  lightType;       // 0 = Directional, 1 = Point
 uniform vec3 lightPosition;   // 世界座標（Point Light 用）
@@ -43,5 +44,6 @@ void main()
 
     TexCoords = aTexCoords;
     vFragPosLightSpace = lightSpaceMatrix * InstanceMatrix * vec4(aPos, 1.0);
+    gl_ClipDistance[0] = dot(InstanceMatrix * vec4(aPos, 1.0), clipPlane);
     gl_Position = MVP * vec4(aPos, 1.0);
 }

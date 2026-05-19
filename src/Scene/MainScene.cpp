@@ -14,7 +14,7 @@ namespace CG
         rootObject.id = 0;
 
         // 攝影機初始位置在 X=-3，面朝 +X 軸方向
-        freeViewCamera = Camera(glm::vec3(-3, 0, 0));
+        freeViewCamera = Camera(glm::vec3(-10, 10, 0));
         freeViewCamera.configureLookAt(glm::vec3(1, 0, 0), glm::vec3(0, 1, 0));
 
         // ── 載入 Gundam 各部位模型（OBJ 格式，含貼圖）─────────────────────────
@@ -39,7 +39,7 @@ namespace CG
 
         model_photonBlade = std::make_unique<Model>("objModels/PhotonBlade/untitled.fbx", false, true);
 
-        model_Cube = std::make_unique<Model>(20, 1, 20);
+        model_Cube = std::make_unique<Model>(10, 1, 10);
         // ── 建立 5 個 Gundam 實體，各部位偏移值為 T-pose 的相對位置 ────────────
         for (int i = 0; i < 5; i++)
         {
@@ -273,29 +273,21 @@ namespace CG
     // 一般場景渲染：收集各 Model 的世界矩陣並以 Instanced Rendering 批次繪製
     void MainScene::RenderObjects(Shader* worldObjectShader)
     {
+        RenderObjects(worldObjectShader, freeViewCamera.GetViewMatrix());
+    }
+
+    void MainScene::RenderObjects(Shader* worldObjectShader, const glm::mat4& overrideView)
+    {
         worldObjectShader->use();
 
-        // view / projection 只需上傳一次，所有 mesh 共用
-        worldObjectShader->setUnifMat4("view",       freeViewCamera.GetViewMatrix());
+        worldObjectShader->setUnifMat4("view",       overrideView);
         worldObjectShader->setUnifMat4("projection", freeViewCamera.GetProjectionMatrix());
 
-        // 遍歷場景樹，依 Model* 分組收集 world matrix（相同 Model 合併為一個 Draw Call）
         std::unordered_map<Model*, std::vector<glm::mat4>> instanceMap;
         CollectInstances(&rootObject, instanceMap);
 
-        // 每個不同的 Model 發出一次 glDrawElementsInstanced
         for (auto& [model, matrices] : instanceMap)
             model->DrawInstanced(*worldObjectShader, matrices);
-    }
-
-    // 刀光拖尾渲染：每幀採樣光子刀刃兩端世界座標，更新拖尾並繪製
-    void MainScene::RenderTrails(Shader* trailShader)
-    {
-        trailShader->use();
-        trailShader->setUnifMat4("view",       freeViewCamera.GetViewMatrix());
-        trailShader->setUnifMat4("projection", freeViewCamera.GetProjectionMatrix());
-
-        float currentTime = (float)glfwGetTime();
     }
 
     void MainScene::RenderParticles(Shader* particleShader, Shader* trailShader)

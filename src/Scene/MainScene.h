@@ -31,8 +31,8 @@ namespace CG
 
         // ── 渲染介面（由 SceneRenderer 呼叫）────────────────────────────────
         void RenderObjects(Shader* worldObjectShader);
+        void RenderObjects(Shader* worldObjectShader, const glm::mat4& overrideView);
         void RenderParticles(Shader* particleShader, Shader* trailShader);
-        void RenderTrails(Shader* trailShader);
         void RenderObjectsForPicking(Shader* pickingShader);
 
         // ── 粒子特效（從 JSON 匯入，運行於 MainScene 中）────────────────────
