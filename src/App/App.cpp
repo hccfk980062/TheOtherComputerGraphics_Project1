@@ -71,6 +71,7 @@ namespace CG
         inspectorWindow = std::make_unique<InspectorWindow>();
         inspectorWindow->Initialize();
         inspectorWindow->SetTargetScene(mainScene.get());
+        inspectorWindow->SetSceneRenderer(sceneRenderer.get());
 
         hierarchyWindow = std::make_unique<HierarchyWindow>();
         hierarchyWindow->Initialize();

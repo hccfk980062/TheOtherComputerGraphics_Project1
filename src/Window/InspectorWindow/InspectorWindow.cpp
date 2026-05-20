@@ -46,6 +46,11 @@ namespace CG
                         DisplayParticlesPanel();
                         ImGui::EndTabItem();
                     }
+                    if (ImGui::BeginTabItem("Post-Process"))
+                    {
+                        DisplayPostProcessPanel();
+                        ImGui::EndTabItem();
+                    }
                 }
                 ImGui::EndTabBar();
             }
@@ -260,6 +265,30 @@ namespace CG
                 ImGui::Text("  [%d] %s  alive=%d  node=%s",
                     i, e->m_name.c_str(), e->AliveCount(), nodeName);
             }
+        }
+    }
+
+    void InspectorWindow::DisplayPostProcessPanel()
+    {
+        if (!sceneRenderer)
+        {
+            ImGui::TextColored(ImVec4(1, 0, 0, 1), "No SceneRenderer assigned!");
+            return;
+        }
+
+        ImGui::Text("Post-Processing Effects");
+        ImGui::Separator();
+
+        // ── 馬賽克濾鏡 ───────────────────────────────────────────────────────
+        ImGui::TextDisabled("Mosaic Filter");
+        ImGui::Checkbox("Enable Mosaic##mosaic", &sceneRenderer->mosaicEnabled);
+
+        if (sceneRenderer->mosaicEnabled)
+        {
+            ImGui::SliderInt("Pixel Size##mosaic", &sceneRenderer->mosaicPixelSize, 2, 128);
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Reset##mosaic"))
+                sceneRenderer->mosaicPixelSize = 16;
         }
     }
 

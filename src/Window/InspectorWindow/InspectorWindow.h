@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Scene/MainScene.h>
+#include <Scene/SceneRenderer.h>
 
 namespace CG
 {
@@ -14,13 +15,12 @@ namespace CG
         auto Initialize() -> bool;
         void Display();  // 每幀呼叫：繪製整個 Inspector 視窗
 
-        void SetTargetScene(MainScene* scene)
-        {
-            targetScene = scene;
-        }
+        void SetTargetScene(MainScene* scene)    { targetScene    = scene;    }
+        void SetSceneRenderer(SceneRenderer* r)  { sceneRenderer  = r;        }
 
     private:
-        MainScene* targetScene = nullptr;
+        MainScene*    targetScene   = nullptr;
+        SceneRenderer* sceneRenderer = nullptr;
 
         // ── 分頁面板輔助函式 ─────────────────────────────────────────────────
         void DisplayTransformPanel();
@@ -28,5 +28,6 @@ namespace CG
         void DisplayIKPanel();
         void DisplayLightingPanel();
         void DisplayParticlesPanel();  // 匯入並管理在 MainScene 中運行的粒子特效
+        void DisplayPostProcessPanel(); // 後製特效（馬賽克等）
     };
 }
