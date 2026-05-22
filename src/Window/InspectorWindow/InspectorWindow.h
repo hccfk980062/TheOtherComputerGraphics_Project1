@@ -29,5 +29,6 @@ namespace CG
         void DisplayLightingPanel();
         void DisplayParticlesPanel();  // 匯入並管理在 MainScene 中運行的粒子特效
         void DisplayPostProcessPanel(); // 後製特效（馬賽克等）
+        void DisplayEnvMapPanel();      // Cube 環境貼圖（反射 / 折射）
     };
 }

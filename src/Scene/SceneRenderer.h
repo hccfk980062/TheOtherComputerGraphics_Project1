@@ -35,6 +35,10 @@ namespace CG
         bool mosaicEnabled  = false;
         int  mosaicPixelSize = 16;   // 馬賽克格子大小（像素），範圍 2–128
 
+        // ── 環境貼圖參數（Cube 反射 / 折射）─────────────────────────────────
+        int   cubeEnvMode      = 0;       // 0=Phong, 1=Reflect, 2=Refract
+        float cubeRefractRatio = 0.658f;  // 折射率（預設玻璃）
+
     private:
         GLenum mode = GL_FILL;
 
@@ -44,6 +48,7 @@ namespace CG
         std::unique_ptr<Shader>      shaderProgram_picking;
         std::unique_ptr<Shader>      shaderProgram_shadowDepth;  // Shadow depth pass 著色器
         std::unique_ptr<Shader>      shaderProgram_skybox;       // 天空盒著色器
+        std::unique_ptr<Shader>      shaderProgram_envmap;       // 環境貼圖著色器（Cube 反射/折射）
         std::unique_ptr<Skybox>      skybox;                     // 天空盒（Cross Layout Cubemap）
 
         std::unique_ptr<Framebuffer> viewportFramebuffer;

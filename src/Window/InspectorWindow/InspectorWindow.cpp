@@ -51,6 +51,11 @@ namespace CG
                         DisplayPostProcessPanel();
                         ImGui::EndTabItem();
                     }
+                    if (ImGui::BeginTabItem("Env Map"))
+                    {
+                        DisplayEnvMapPanel();
+                        ImGui::EndTabItem();
+                    }
                 }
                 ImGui::EndTabBar();
             }
@@ -289,6 +294,35 @@ namespace CG
             ImGui::SameLine();
             if (ImGui::SmallButton("Reset##mosaic"))
                 sceneRenderer->mosaicPixelSize = 16;
+        }
+    }
+
+    void InspectorWindow::DisplayEnvMapPanel()
+    {
+        if (!sceneRenderer)
+        {
+            ImGui::TextColored(ImVec4(1, 0, 0, 1), "No SceneRenderer assigned!");
+            return;
+        }
+
+        ImGui::Text("Cube Environment Mapping");
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::RadioButton("Normal (Phong)", &sceneRenderer->cubeEnvMode, 0);
+        ImGui::RadioButton("Reflection",     &sceneRenderer->cubeEnvMode, 1);
+        ImGui::RadioButton("Refraction",     &sceneRenderer->cubeEnvMode, 2);
+
+        if (sceneRenderer->cubeEnvMode == 2)
+        {
+            ImGui::Spacing();
+            ImGui::TextDisabled("Refraction Ratio (eta)");
+            ImGui::SliderFloat("##eta", &sceneRenderer->cubeRefractRatio, 0.1f, 1.0f, "%.3f");
+            if (ImGui::SmallButton("Glass"))    sceneRenderer->cubeRefractRatio = 0.658f;
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Water"))    sceneRenderer->cubeRefractRatio = 0.750f;
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Diamond"))  sceneRenderer->cubeRefractRatio = 0.417f;
         }
     }
 

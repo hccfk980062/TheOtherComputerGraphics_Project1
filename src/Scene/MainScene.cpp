@@ -40,6 +40,7 @@ namespace CG
         model_photonBlade = std::make_unique<Model>("objModels/PhotonBlade/untitled.fbx", false, true);
 
         model_Cube = std::make_unique<Model>(10, 1, 10);
+        model_Sphere = std::make_unique<Model>("objModels/Sphere.fbx",  false, false);
         // ── 建立 5 個 Gundam 實體，各部位偏移值為 T-pose 的相對位置 ────────────
         for (int i = 0; i < 5; i++)
         {
@@ -98,6 +99,7 @@ namespace CG
         // ── 光子刀設定 ────────────────────────────────────────────────────────
         SetupSceneObject(model_photonBlade.get(), "PhotonBlade", "PhotonBlade");
         SetupSceneObject(model_Cube.get(), "Cube", "0");
+        SetupSceneObject(model_Sphere.get(), "Sphere", "0");
 
         InitIKChains();
 
@@ -376,12 +378,37 @@ namespace CG
     }
 
     // 遞迴走訪場景樹，依 Model* 指標將世界矩陣分組（Instanced Rendering 前置收集）
-    void MainScene::CollectInstances(SceneObject* obj, std::unordered_map<Model*, std::vector<glm::mat4>>& outMap)
+    void MainScene::CollectInstances(SceneObject* obj, std::unordered_map<Model*, std::vector<glm::mat4>>& outMap, Model* excludeModel)
     {
-        if (obj->model != nullptr)
+        if (obj->model != nullptr && obj->model != excludeModel)
             outMap[obj->model].push_back(obj->GetWorldMatrix());
 
         for (auto& child : obj->children)
-            CollectInstances(child.get(), outMap);
+            CollectInstances(child.get(), outMap, excludeModel);
+    }
+
+    void MainScene::RenderObjectsExceptCube(Shader* worldObjectShader)
+    {
+        worldObjectShader->use();
+        worldObjectShader->setUnifMat4("view",       freeViewCamera.GetViewMatrix());
+        worldObjectShader->setUnifMat4("projection", freeViewCamera.GetProjectionMatrix());
+
+        std::unordered_map<Model*, std::vector<glm::mat4>> instanceMap;
+        CollectInstances(&rootObject, instanceMap, model_Sphere.get());
+
+        for (auto& [model, matrices] : instanceMap)
+            model->DrawInstanced(*worldObjectShader, matrices);
+    }
+
+    void MainScene::RenderCubeOnly(Shader* shader)
+    {
+        if (!model_Sphere) return;
+
+        std::unordered_map<Model*, std::vector<glm::mat4>> instanceMap;
+        CollectInstances(&rootObject, instanceMap, nullptr);
+
+        auto it = instanceMap.find(model_Sphere.get());
+        if (it != instanceMap.end())
+            model_Sphere->DrawInstanced(*shader, it->second);
     }
 }

@@ -32,6 +32,8 @@ namespace CG
         // ── 渲染介面（由 SceneRenderer 呼叫）────────────────────────────────
         void RenderObjects(Shader* worldObjectShader);
         void RenderObjects(Shader* worldObjectShader, const glm::mat4& overrideView);
+        void RenderObjectsExceptCube(Shader* worldObjectShader);  // 排除 Cube，供環境貼圖 pass 使用
+        void RenderCubeOnly(Shader* shader);                      // 僅繪製 model_Cube
         void RenderParticles(Shader* particleShader, Shader* trailShader);
         void RenderObjectsForPicking(Shader* pickingShader);
 
@@ -74,6 +76,7 @@ namespace CG
         std::unique_ptr<Model> model_Gundam[18];
         std::unique_ptr<Model> model_photonBlade;
         std::unique_ptr<Model> model_Cube;
+        std::unique_ptr<Model> model_Sphere;
         float lastTime = (float)glfwGetTime();
 
         // Particle timeline state
@@ -81,7 +84,8 @@ namespace CG
         float m_particleTimeAccum = 0.0f;
 
         // 遞迴收集場景樹中所有物件的世界矩陣，依 Model* 分組以支援 Instanced Rendering
-        void CollectInstances(SceneObject* obj, std::unordered_map<Model*, std::vector<glm::mat4>>& outMap);
+        // excludeModel != nullptr 時跳過該 Model（供環境貼圖 pass 排除 Cube 使用）
+        void CollectInstances(SceneObject* obj, std::unordered_map<Model*, std::vector<glm::mat4>>& outMap, Model* excludeModel = nullptr);
 
         // 建立並加入一個 SceneObject 至場景樹根節點
         void SetupSceneObject(Model* model, std::string modelName, std::string animationSerializedName, glm::vec3 objectPosition = glm::vec3(0))

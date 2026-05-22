@@ -17,6 +17,8 @@ namespace CG
         // 以 GL_LEQUAL 深度測試繪製天空盒（應在所有不透明物件之後呼叫）
         void Draw(Shader* shader, const glm::mat4& view, const glm::mat4& projection);
 
+        unsigned int getCubemapTexture() const { return cubemapTexture; }
+
     private:
         unsigned int VAO, VBO;
         unsigned int cubemapTexture;

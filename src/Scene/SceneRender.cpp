@@ -17,6 +17,7 @@ namespace CG
         shaderProgram_skybox      = std::make_unique<Shader>("ShaderPrograms/skybox_vertex.vert",               "ShaderPrograms/skybox_fragment.frag");
         shaderProgram_water       = std::make_unique<Shader>("ShaderPrograms/water_vertex.vert",                 "ShaderPrograms/water_fragment.frag");
         shaderProgram_mosaic      = std::make_unique<Shader>("ShaderPrograms/shader_mosaic_vertex.vert",        "ShaderPrograms/shader_mosaic_fragment.frag");
+        shaderProgram_envmap      = std::make_unique<Shader>("ShaderPrograms/shader_envmap_vertex.vert",        "ShaderPrograms/shader_envmap_fragment.frag");
         skybox = std::make_unique<Skybox>("Textures/skyboxsun5deg.png");
         waterPlane = std::make_unique<WaterPlane>();
         waterPlane->Initialize(width, height);
@@ -217,7 +218,34 @@ namespace CG
         shaderProgram_worldObject->setUnifFloat("shadowBias",      lt.shadowBias);
         shaderProgram_worldObject->setUnifVec4 ("clipPlane",       0.0f, 0.0f, 0.0f, 0.0f);  // disabled
 
-        scene->RenderObjects(shaderProgram_worldObject.get());
+        if (cubeEnvMode == 0)
+        {
+            scene->RenderObjects(shaderProgram_worldObject.get());
+        }
+        else
+        {
+            // Phong pass for all objects except the cube
+            scene->RenderObjectsExceptCube(shaderProgram_worldObject.get());
+
+            // Env map pass for the cube only
+            shaderProgram_envmap->use();
+            shaderProgram_envmap->setUnifMat4("view",       scene->freeViewCamera.GetViewMatrix());
+            shaderProgram_envmap->setUnifMat4("projection", scene->freeViewCamera.GetProjectionMatrix());
+            shaderProgram_envmap->setUnifVec3("cameraPos",
+                scene->freeViewCamera.Position.x,
+                scene->freeViewCamera.Position.y,
+                scene->freeViewCamera.Position.z);
+            shaderProgram_envmap->setUnifInt  ("envMode",      cubeEnvMode);
+            shaderProgram_envmap->setUnifFloat("refractRatio", cubeRefractRatio);
+            shaderProgram_envmap->setUnifInt  ("skybox",       1);
+
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->getCubemapTexture());
+
+            scene->RenderCubeOnly(shaderProgram_envmap.get());
+
+            glActiveTexture(GL_TEXTURE0);  // restore for skybox draw
+        }
 
         skybox->Draw(
             shaderProgram_skybox.get(),
