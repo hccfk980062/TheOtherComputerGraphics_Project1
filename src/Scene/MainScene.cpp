@@ -100,7 +100,8 @@ namespace CG
         }
 
         // ── 光子刀設定 ────────────────────────────────────────────────────────
-        SetupSceneObject(model_photonBlade.get(), "PhotonBlade", "PhotonBlade");
+        SetupSceneObject(model_photonBlade.get(), "PhotonBlade", "Blade1");
+        SetupSceneObject(model_photonBlade.get(), "PhotonBlade", "Blade2");
         SetupSceneObject(model_Cube.get(), "Cube", "0");
         SetupSceneObject(model_Sphere.get(), "Sphere", "0");
 
