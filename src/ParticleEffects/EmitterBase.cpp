@@ -156,9 +156,13 @@ namespace CG
         p.lifetime = randF(sp.lifetime, sp.lifetimeRand, m_rng);
         if (p.lifetime <= 0.0f) p.lifetime = 0.001f;
 
-        p.pos   = basePos + SampleSpawnOffset(m_rng) + randV3(sp.initPos, sp.initPosRand, m_rng);
-        p.vel   = randV3(sp.initVel, sp.initVelRand, m_rng);
-        p.accel = randV3(sp.initAccel, sp.initAccelRand, m_rng);
+        // Apply the emitter's world-space rotation to spawn position offset,
+        // initial velocity, and acceleration so the effect follows the node orientation.
+        glm::vec3 localOffset = SampleSpawnOffset(m_rng) + randV3(sp.initPos, sp.initPosRand, m_rng);
+        p.pos         = basePos + (m_worldRotation * localOffset);
+        p.vel         = m_worldRotation * randV3(sp.initVel,   sp.initVelRand,   m_rng);
+        p.accel       = m_worldRotation * randV3(sp.initAccel, sp.initAccelRand, m_rng);
+        p.orientation = m_worldRotation;  // captured for DrawRings geometry rotation
 
         p.rot      = randF(sp.initRot,      sp.initRotRand,      m_rng);
         p.rotVel   = randF(sp.initRotVel,   sp.initRotVelRand,   m_rng);
@@ -458,14 +462,16 @@ namespace CG
                 float cosA = std::cos(angle);
                 float sinA = std::sin(angle);
 
-                // Rotate ring in XZ plane by p->rot around Y axis
+                // Build ring geometry in local XZ plane (Y-up), then rotate by
+                // the particle's spawn orientation so the ring faces the correct
+                // direction in world space (e.g. perpendicular to a tilted blade).
                 float ox = (cosA * cosR - sinA * sinR) * outer * sc;
                 float oz = (cosA * sinR + sinA * cosR) * outer * sc;
                 float ix = (cosA * cosR - sinA * sinR) * inner * sc;
                 float iz = (cosA * sinR + sinA * cosR) * inner * sc;
 
-                glm::vec3 outerPt = p->pos + glm::vec3(ox, 0.0f, oz);
-                glm::vec3 innerPt = p->pos + glm::vec3(ix, 0.0f, iz);
+                glm::vec3 outerPt = p->pos + p->orientation * glm::vec3(ox, 0.0f, oz);
+                glm::vec3 innerPt = p->pos + p->orientation * glm::vec3(ix, 0.0f, iz);
 
                 // outer vertex (UV.y=0 → soft outer edge)
                 verts.insert(verts.end(), { outerPt.x, outerPt.y, outerPt.z, alpha, 0.0f, 0.0f });

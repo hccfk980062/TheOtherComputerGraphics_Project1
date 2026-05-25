@@ -2,6 +2,7 @@
 #include <vector>
 #include <memory>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <GL/glew.h>
 
 namespace CG
@@ -19,6 +20,10 @@ namespace CG
         float rot      = 0.0f;
         float rotVel   = 0.0f;
         float rotAccel = 0.0f;
+
+        // World-space orientation captured at spawn time (from emitter's ownerNode).
+        // Used by DrawRings to orient the ring geometry into the correct plane.
+        glm::quat orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f); // identity
 
         float scale      = 1.0f;
         float scaleVel   = 0.0f;

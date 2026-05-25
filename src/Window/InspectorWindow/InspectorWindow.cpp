@@ -241,7 +241,7 @@ namespace CG
 
         if (ImGui::Button("Clear All##particles", ImVec2(-1, 0)))
         {
-            if(targetScene->selectedObject->objectType == 2)
+            if(targetScene->selectedObject != nullptr && targetScene->selectedObject->objectType == 2)
                 targetScene->selectedObject = nullptr;
             targetScene->ClearParticleEffects();
         }

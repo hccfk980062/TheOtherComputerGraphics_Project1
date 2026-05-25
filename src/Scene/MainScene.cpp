@@ -4,6 +4,9 @@
 #include "MainScene.h"
 #include "ParticleEffects/ParticleSerializer.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 namespace CG
 {
     MainScene::MainScene() {}
@@ -318,6 +321,27 @@ namespace CG
                 ? glm::vec3(e->ownerNode->GetWorldMatrix()[3])
                 : glm::vec3(0);
 
+            // ── 從 ownerNode 世界矩陣提取純旋轉四元數 ──────────────────────────
+            // 先各軸正規化以移除縮放影響，再由純旋轉矩陣轉換為四元數。
+            // 這樣新生成的粒子方向（速度、噴射位移）就能跟隨 ImGuizmo 旋轉同步。
+            if (e->ownerNode)
+            {
+                const glm::mat4& wm = e->ownerNode->GetWorldMatrix();
+                glm::vec3 col0(wm[0]), col1(wm[1]), col2(wm[2]);
+                float sx = glm::length(col0);
+                float sy = glm::length(col1);
+                float sz = glm::length(col2);
+                if (sx > 1e-6f && sy > 1e-6f && sz > 1e-6f)
+                    e->m_worldRotation = glm::quat_cast(
+                        glm::mat3(col0 / sx, col1 / sy, col2 / sz));
+                else
+                    e->m_worldRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+            }
+            else
+            {
+                e->m_worldRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+            }
+
             // Sequencer 管理的 Emitter 使用 m_seqFrame（由 SequencerWindow 每幀寫入），
             // 這樣發射時間窗（m_startFrame~m_endFrame）才會跟隨時間軸播放/暫停/拖曳
             int frame = e->ownerNode ? e->m_seqFrame : m_particleFrame;
@@ -356,20 +380,26 @@ namespace CG
         for (auto& e : m_particleEmitters)
             e->ownerNode = nullptr;
 
-        // 從場景樹和 ObjectList 中移除所有 Emitter SceneObject
+        // 第一步：先從場景樹移除所有 emitter 物件（但保持記憶體活著）
         for (SceneObject* emObj : m_emitterObjects)
         {
-            ObjectList.erase(
-                std::remove(ObjectList.begin(), ObjectList.end(), emObj),
-                ObjectList.end());
-
             SceneObject* parent = emObj->parent ? emObj->parent : &rootObject;
             auto& siblings = parent->children;
+
             siblings.erase(
                 std::remove_if(siblings.begin(), siblings.end(),
                     [emObj](const auto& c) { return c.get() == emObj; }),
                 siblings.end());
         }
+
+        // 第二步：再從 ObjectList 移除（此時 emObj 已從樹中分離，不會被刪除）
+        for (SceneObject* emObj : m_emitterObjects)
+        {
+            ObjectList.erase(
+                std::remove(ObjectList.begin(), ObjectList.end(), emObj),
+                ObjectList.end());
+        }
+
         m_emitterObjects.clear();
 
         m_particleEmitters.clear();

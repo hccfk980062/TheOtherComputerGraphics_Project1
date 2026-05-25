@@ -4,6 +4,7 @@
 #include <memory>
 #include <random>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <GL/glew.h>
 
 #include "Shader/Shader.h"
@@ -71,6 +72,11 @@ namespace CG
         bool         m_open     = true;   // hierarchy tree node open state
         SceneObject* ownerNode  = nullptr; // non-owning; set by MainScene::LoadParticleEffect
         int          m_seqFrame = 0;       // driven by SequencerWindow; used as timelineFrame in RenderParticles
+
+        // World-space rotation applied to spawn offsets and initial velocities.
+        // Updated every frame by MainScene::RenderParticles from ownerNode's world matrix.
+        // Newly activated particles will spawn in the rotated direction automatically.
+        glm::quat    m_worldRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f); // identity
 
         // Emission control
         int   m_spawnCount    = 5;
