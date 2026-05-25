@@ -80,6 +80,57 @@ namespace CG
             IGFD::FileDialogConfig cfg; cfg.path = ".";
             ImGuiFileDialog::Instance()->OpenDialog("FileDialog_ImportALL", "Import ALL from:", ".json", cfg);
         }
+
+        // ── 全域播放控制 ─────────────────────────────────────────────────────
+        // 判斷目前是否「全部都在播放」，以決定 Play All 按鈕顯示狀態
+        bool allPlaying = !animationGroups.empty() &&
+            std::all_of(animationGroups.begin(), animationGroups.end(),
+                [](const AnimationGroup& g){ return g.isPlaying; });
+
+        // Play All：讓所有群組開始播放（先整理關鍵幀排序）
+        ImGui::BeginDisabled(allPlaying);
+        if (ImGui::Button("Play All"))
+        {
+            for (auto& g : animationGroups)
+            {
+                for (auto& t : g.tracks) t.SortKeyframeDatas();
+                g.isPlaying = true;
+            }
+        }
+        ImGui::EndDisabled();
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+            ImGui::SetTooltip("Start playback on all animation groups");
+
+        ImGui::SameLine();
+
+        // Pause All：暫停所有群組（保留目前幀位置）
+        bool anyPlaying = std::any_of(animationGroups.begin(), animationGroups.end(),
+            [](const AnimationGroup& g){ return g.isPlaying; });
+        ImGui::BeginDisabled(!anyPlaying);
+        if (ImGui::Button("Pause All"))
+        {
+            for (auto& g : animationGroups)
+                g.isPlaying = false;
+        }
+        ImGui::EndDisabled();
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+            ImGui::SetTooltip("Pause all animation groups");
+
+        ImGui::SameLine();
+
+        // Rewind All：全部歸 0（重設至各群組的 startFrame 並更新場景姿勢）
+        if (ImGui::Button("|< All"))
+        {
+            for (auto& g : animationGroups)
+            {
+                g.isPlaying    = false;
+                g.currentFrame = g.startFrame;
+                g.TransformToFrame();
+            }
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Stop & rewind all groups to their start frame");
+
         ImGui::Separator();
 
         // ── 全域檔案對話框 ────────────────────────────────────────────────────

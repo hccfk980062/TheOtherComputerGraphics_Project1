@@ -73,6 +73,11 @@ namespace CG
 
     void EmitterBase::Update(float dt, int timelineFrame, glm::vec3 basePos)
     {
+        // 0. Enforce m_maxParticles cap: when the user lowers the limit at runtime,
+        //    trim the pool immediately so stale particles don't linger or get reused.
+        if ((int)m_particles.size() > m_maxParticles)
+            m_particles.resize(m_maxParticles);
+
         // 1. Advance existing live particles
         for (auto& p : m_particles)
         {
@@ -119,16 +124,20 @@ namespace CG
     void EmitterBase::EmitBurst(int count, glm::vec3 basePos)
     {
         int spawned = 0;
-        for (auto& p : m_particles)
+
+        // Only recycle dead slots within [0, m_maxParticles).
+        // This prevents reactivating slots that now lie beyond a reduced cap.
+        int poolLimit = std::min((int)m_particles.size(), m_maxParticles);
+        for (int i = 0; i < poolLimit && spawned < count; ++i)
         {
-            if (spawned >= count) break;
-            if (!p->alive)
+            if (!m_particles[i]->alive)
             {
-                ActivateParticle(*p, basePos);
+                ActivateParticle(*m_particles[i], basePos);
                 ++spawned;
             }
         }
-        // Grow pool if still below max
+
+        // Grow pool up to current max if we still need more
         while (spawned < count && (int)m_particles.size() < m_maxParticles)
         {
             auto p = std::make_unique<Particle>();
