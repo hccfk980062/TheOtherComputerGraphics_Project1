@@ -1,6 +1,9 @@
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <string>
 
+#include "ImGuiFileDialog/ImGuiFileDialog.h"
+#include "ParticleEffects/ParticleTextureLoader.h"
 #include "Window/ParticleEditorWindow/ParticleInspectorWindow.h"
 
 namespace CG
@@ -12,22 +15,42 @@ namespace CG
 
     void ParticleInspectorWindow::Display()
     {
-        if (!ImGui::Begin("Particle Inspector"))
+        // ── Main inspector window ──────────────────────────────────────────
+        bool visible = ImGui::Begin("Particle Inspector");
+        if (visible)
         {
-            ImGui::End();
-            return;
+            if (!m_scene || !m_scene->m_selectedEmitter)
+                ImGui::TextDisabled("Select an emitter in the Hierarchy.");
+            else
+                DisplayEmitterPanel(m_scene->m_selectedEmitter);
         }
-
-        if (!m_scene || !m_scene->m_selectedEmitter)
-        {
-            ImGui::TextDisabled("Select an emitter in the Hierarchy.");
-            ImGui::End();
-            return;
-        }
-
-        DisplayEmitterPanel(m_scene->m_selectedEmitter);
-
         ImGui::End();
+
+        // ── Texture file dialog (independent top-level window) ─────────────
+        HandleTextureFileDialog();
+    }
+
+    void ParticleInspectorWindow::HandleTextureFileDialog()
+    {
+        if (!ImGuiFileDialog::Instance()->Display("ChooseParticleTex",
+            ImGuiWindowFlags_NoCollapse, ImVec2(640, 420)))
+            return;
+
+        if (ImGuiFileDialog::Instance()->IsOk() && m_texDialogTarget)
+        {
+            std::string filePath =
+                ImGuiFileDialog::Instance()->GetFilePathName(IGFD_ResultMode_KeepInputFile);
+
+            GLuint tid = LoadParticleTexture(filePath);
+            if (tid != 0)
+            {
+                m_texDialogTarget->textureID   = tid;
+                m_texDialogTarget->texturePath = filePath;
+            }
+        }
+
+        m_texDialogTarget = nullptr;
+        ImGuiFileDialog::Instance()->Close();
     }
 
     // ── Helper: labeled vec3 drag ─────────────────────────────────────────────
@@ -156,8 +179,53 @@ namespace CG
         ImGui::Separator();
         ImGui::TextDisabled("Appearance");
         ImGui::ColorEdit4("Color", glm::value_ptr(p.color));
-        ImGui::DragInt("Texture ID", (int*)&p.textureID, 1, 0, 65535);
-        ImGui::TextDisabled("(0 = solid color; set via GL texture ID)");
+
+        // ── Texture ───────────────────────────────────────────────────────
+        ImGui::Separator();
+        ImGui::TextDisabled("Particle Texture");
+
+        if (p.textureID != 0)
+        {
+            // Thumbnail preview
+            ImGui::Image(
+                (ImTextureID)(intptr_t)p.textureID,
+                ImVec2(64.0f, 64.0f),
+                ImVec2(0, 0), ImVec2(1, 1));
+            ImGui::SameLine();
+
+            ImGui::BeginGroup();
+            {
+                // Truncate long paths so they fit in the panel
+                std::string display = p.texturePath;
+                if (display.size() > 42)
+                    display = "..." + display.substr(display.size() - 39);
+                ImGui::TextWrapped("%s", display.c_str());
+
+                if (ImGui::Button("Clear##tex"))
+                {
+                    p.textureID   = 0;
+                    p.texturePath = "";
+                }
+            }
+            ImGui::EndGroup();
+        }
+        else
+        {
+            ImGui::TextDisabled("(no texture  —  solid color mode)");
+        }
+
+        if (ImGui::Button("Load Image...##tex"))
+        {
+            m_texDialogTarget = &p;
+            IGFD::FileDialogConfig cfg;
+            cfg.path            = ".";
+            cfg.countSelectionMax = 1;
+            ImGuiFileDialog::Instance()->OpenDialog(
+                "ChooseParticleTex",
+                "Choose Particle Texture",
+                ".png,.jpg,.jpeg,.bmp,.tga,.PNG,.JPG,.JPEG,.BMP,.TGA",
+                cfg);
+        }
 
         // Trail-specific
         if (p.particleType == ParticleType::Trail)

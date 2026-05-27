@@ -8,6 +8,7 @@
 
 #include "ParticleEffects/EmitterBase.h"
 #include "ParticleEffects/ConcreteEmitters.h"
+#include "ParticleEffects/ParticleTextureLoader.h"
 
 namespace CG
 {
@@ -43,6 +44,7 @@ namespace CG
         j["initScaleAccel"]     = p.initScaleAccel;
         j["initScaleAccelRand"] = p.initScaleAccelRand;
         j["color"]              = ps_v4(p.color);
+        j["texturePath"]        = p.texturePath;   // "" when no texture
         j["lifetime"]           = p.lifetime;
         j["lifetimeRand"]       = p.lifetimeRand;
         j["maxTrailLength"]     = p.maxTrailLength;
@@ -79,6 +81,9 @@ namespace CG
         p.initScaleAccel    = j.value("initScaleAccel",     0.0f);
         p.initScaleAccelRand= j.value("initScaleAccelRand", 0.0f);
         p.color             = j.contains("color") ? ps_fv4(j["color"]) : glm::vec4(1,0.5f,0.1f,1);
+        // Restore texture: re-load from the saved path (0 on failure → falls back to solid color)
+        p.texturePath       = j.value("texturePath", std::string(""));
+        p.textureID         = LoadParticleTexture(p.texturePath);
         p.lifetime          = j.value("lifetime",       2.0f);
         p.lifetimeRand      = j.value("lifetimeRand",   0.5f);
         p.maxTrailLength    = j.value("maxTrailLength", 20);

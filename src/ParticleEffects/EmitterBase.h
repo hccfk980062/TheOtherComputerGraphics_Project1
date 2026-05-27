@@ -41,8 +41,9 @@ namespace CG
         float initScaleAccel   = 0.0f;   float initScaleAccelRand = 0.0f;
 
         // Appearance
-        glm::vec4 color      = glm::vec4(1.0f, 0.5f, 0.1f, 1.0f);
-        GLuint    textureID  = 0;  // 0 = solid color
+        glm::vec4   color       = glm::vec4(1.0f, 0.5f, 0.1f, 1.0f);
+        GLuint      textureID   = 0;   // 0 = solid color
+        std::string texturePath = "";  // "" = none; stores file path of loaded image
 
         // Lifetime
         float lifetime     = 2.0f;
