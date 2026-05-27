@@ -295,6 +295,31 @@ namespace CG
             if (ImGui::SmallButton("Reset##mosaic"))
                 sceneRenderer->mosaicPixelSize = 16;
         }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // ── 動態模糊（Motion Blur）──────────────────────────────────────────
+        ImGui::TextDisabled("Motion Blur");
+        ImGui::Checkbox("Enable Motion Blur##mb", &sceneRenderer->motionBlurEnabled);
+
+        if (sceneRenderer->motionBlurEnabled)
+        {
+            ImGui::SliderInt  ("Samples##mb",  &sceneRenderer->motionBlurSamples,  2,   16);
+            ImGui::SameLine();
+            ImGui::TextDisabled("(fps cost)");
+
+            ImGui::SliderFloat("Strength##mb", &sceneRenderer->motionBlurStrength, 0.1f, 5.0f);
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Reset##mb"))
+            {
+                sceneRenderer->motionBlurSamples  = 8;
+                sceneRenderer->motionBlurStrength = 1.0f;
+            }
+
+            ImGui::TextDisabled("Tip: move the camera or animate objects to see blur.");
+        }
     }
 
     void InspectorWindow::DisplayEnvMapPanel()

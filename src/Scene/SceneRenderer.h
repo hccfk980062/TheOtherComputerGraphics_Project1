@@ -1,5 +1,7 @@
 #pragma once
 #include <memory>
+#include <unordered_map>
+#include <cstdint>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -35,6 +37,11 @@ namespace CG
         bool mosaicEnabled  = false;
         int  mosaicPixelSize = 16;   // 馬賽克格子大小（像素），範圍 2–128
 
+        // ── 動態模糊參數（可由 InspectorWindow 直接讀寫）─────────────────────
+        bool  motionBlurEnabled  = false;
+        int   motionBlurSamples  = 8;      // 採樣次數（2~16），越高越順滑但越費效能
+        float motionBlurStrength = 1.0f;   // 速度縮放係數（0.5~3.0），調高可加強效果
+
         // ── 環境貼圖參數（Cube 反射 / 折射）─────────────────────────────────
         int   cubeEnvMode      = 0;       // 0=Phong, 1=Reflect, 2=Refract
         float cubeRefractRatio = 0.658f;  // 折射率（預設玻璃）
@@ -64,7 +71,28 @@ namespace CG
         unsigned int screenQuadVBO = 0;
 
         void InitScreenQuad();   // 建立全螢幕四邊形 VAO/VBO（僅呼叫一次）
-        void ApplyMosaicPass();  // 從 viewportFramebuffer → postProcessFramebuffer
+        void ApplyMosaicPass();  // 從 (motionBlur 或 viewport) FBO → postProcessFramebuffer
+
+        // ── Post-Processing（動態模糊）──────────────────────────────────────
+        std::unique_ptr<Framebuffer> motionBlurFramebuffer;       // 動態模糊輸出 FBO
+        std::unique_ptr<Shader>      shaderProgram_velocity;      // 速度向量渲染著色器
+        std::unique_ptr<Shader>      shaderProgram_motionBlur;    // 動態模糊後製著色器
+
+        // 速度緩衝 FBO（RG16F 浮點貼圖，直接管理而不使用 Framebuffer 類別）
+        GLuint velocityFBO      = 0;
+        GLuint velocityColorTex = 0;   // RG16F 速度貼圖
+        GLuint velocityDepthRBO = 0;   // 深度 RBO（速度 pass 需要深度測試）
+        int    velocityFBOWidth = 0, velocityFBOHeight = 0;
+
+        // 前一幀的矩陣資料（計算每物件運動向量用）
+        glm::mat4 m_prevViewProjection = glm::mat4(1.0f);
+        std::unordered_map<uint32_t, glm::mat4> m_prevWorldMatrices;  // key = SceneObject::id
+        bool m_motionBlurFirstFrame = true;  // 第一幀無前幀資料，跳過動態模糊
+
+        void InitVelocityBuffer(int w, int h);           // 建立 RG16F 速度 FBO
+        void ResizeVelocityBuffer(int w, int h);         // 調整速度 FBO 大小
+        void RenderVelocityPass(MainScene* scene);       // 渲染速度向量緩衝
+        void ApplyMotionBlurPass();                      // 讀取速度貼圖，輸出模糊結果
 
         glm::mat4 lightSpaceMatrix = glm::mat4(1.0f);            // 光源空間矩陣（每幀更新）
 

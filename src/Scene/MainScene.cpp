@@ -418,6 +418,38 @@ namespace CG
             CollectInstances(child.get(), outMap, excludeModel);
     }
 
+    // 動態模糊速度 Pass：對場景樹中每個有模型的物件，設定當前與前一幀的 Model Matrix
+    // 並以 DrawInstanced 繪製至 velocityFBO，輸出每像素的螢幕空間速度向量
+    void MainScene::RenderObjectsForVelocity(Shader* velocityShader,
+        const std::unordered_map<uint32_t, glm::mat4>& prevMatrices)
+    {
+        velocityShader->use();
+        // view / projection 由 velocityShader 使用；此處設定當前幀值
+        velocityShader->setUnifMat4("view",       freeViewCamera.GetViewMatrix());
+        velocityShader->setUnifMat4("projection", freeViewCamera.GetProjectionMatrix());
+        RenderObjectForVelocityRecursive(&rootObject, velocityShader, prevMatrices);
+    }
+
+    // 遞迴走訪場景樹，對每個有模型的物件個別設定 u_prevModel 並繪製
+    void MainScene::RenderObjectForVelocityRecursive(SceneObject* obj, Shader* shader,
+        const std::unordered_map<uint32_t, glm::mat4>& prevMatrices)
+    {
+        // 跳過無模型節點（空節點）及粒子 Emitter 節點（objectType == 2）
+        if (obj->model != nullptr && obj->objectType != 2)
+        {
+            glm::mat4 currWorld = obj->GetWorldMatrix();
+
+            // 若找到此物件的前一幀矩陣則使用它，否則用當前矩陣（代表靜止，速度為 0）
+            auto it = prevMatrices.find(obj->id);
+            glm::mat4 prevWorld = (it != prevMatrices.end()) ? it->second : currWorld;
+
+            shader->setUnifMat4("u_prevModel", prevWorld);
+            obj->model->DrawInstanced(*shader, { currWorld });
+        }
+        for (auto& child : obj->children)
+            RenderObjectForVelocityRecursive(child.get(), shader, prevMatrices);
+    }
+
     void MainScene::RenderObjectsExceptCube(Shader* worldObjectShader)
     {
         worldObjectShader->use();

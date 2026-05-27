@@ -37,6 +37,10 @@ namespace CG
         void RenderParticles(Shader* particleShader, Shader* trailShader);
         void RenderObjectsForPicking(Shader* pickingShader);
 
+        // 動態模糊速度 Pass：對每個物件個別設定當前 + 前一幀 Model Matrix，渲染速度向量
+        void RenderObjectsForVelocity(Shader* velocityShader,
+            const std::unordered_map<uint32_t, glm::mat4>& prevMatrices);
+
         // ── 粒子特效（從 JSON 匯入，運行於 MainScene 中）────────────────────
         std::vector<std::unique_ptr<EmitterBase>> m_particleEmitters;
         std::vector<SceneObject*>                 m_emitterObjects;   // non-owning refs，供清除時追蹤
@@ -71,6 +75,10 @@ namespace CG
 
         // 遞迴執行顏色拾取渲染（深度優先走訪場景樹）
         void RenderObjectForPickingRecursive(SceneObject* obj, Shader* shader);
+
+        // 遞迴渲染速度向量（動態模糊 pass 使用）
+        void RenderObjectForVelocityRecursive(SceneObject* obj, Shader* shader,
+            const std::unordered_map<uint32_t, glm::mat4>& prevMatrices);
 
         // 鋼彈各部位模型（index 0 預留，1~17 對應各零件）
         std::unique_ptr<Model> model_Gundam[18];
