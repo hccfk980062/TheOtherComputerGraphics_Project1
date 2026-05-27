@@ -39,6 +39,7 @@ namespace CG
             glDeleteBuffers(1, &m_instancePosVBO);
             glDeleteBuffers(1, &m_instanceColorVBO);
             glDeleteBuffers(1, &m_instanceSizeVBO);
+            glDeleteBuffers(1, &m_instanceRotVBO);
             glDeleteVertexArrays(1, &m_ribbonVAO);
             glDeleteBuffers(1, &m_ribbonVBO);
         }
@@ -156,13 +157,22 @@ namespace CG
         p.lifetime = randF(sp.lifetime, sp.lifetimeRand, m_rng);
         if (p.lifetime <= 0.0f) p.lifetime = 0.001f;
 
-        // Apply the emitter's world-space rotation to spawn position offset,
-        // initial velocity, and acceleration so the effect follows the node orientation.
+        // Build a direction quaternion from initDir Euler angles (degrees, XYZ order).
+        // This rotates velocity/acceleration in the emitter's local frame before world rotation.
+        glm::vec3 dirEuler = randV3(sp.initDir, sp.initDirRand, m_rng);
+        glm::quat dirQuat  = glm::angleAxis(glm::radians(dirEuler.x), glm::vec3(1, 0, 0))
+                           * glm::angleAxis(glm::radians(dirEuler.y), glm::vec3(0, 1, 0))
+                           * glm::angleAxis(glm::radians(dirEuler.z), glm::vec3(0, 0, 1));
+
+        // Apply world-space rotation to spawn position offset.
         glm::vec3 localOffset = SampleSpawnOffset(m_rng) + randV3(sp.initPos, sp.initPosRand, m_rng);
         p.pos         = basePos + (m_worldRotation * localOffset);
-        p.vel         = m_worldRotation * randV3(sp.initVel,   sp.initVelRand,   m_rng);
-        p.accel       = m_worldRotation * randV3(sp.initAccel, sp.initAccelRand, m_rng);
+        // Direction offset rotates the local velocity before world rotation is applied.
+        p.vel         = m_worldRotation * (dirQuat * randV3(sp.initVel,   sp.initVelRand,   m_rng));
+        p.accel       = m_worldRotation * (dirQuat * randV3(sp.initAccel, sp.initAccelRand, m_rng));
         p.orientation = m_worldRotation;  // captured for DrawRings geometry rotation
+
+        p.dirVel   = randV3(sp.initDirVel, sp.initDirVelRand, m_rng);
 
         p.rot      = randF(sp.initRot,      sp.initRotRand,      m_rng);
         p.rotVel   = randF(sp.initRotVel,   sp.initRotVelRand,   m_rng);
@@ -186,6 +196,15 @@ namespace CG
 
     void EmitterBase::UpdateParticlePhysics(Particle& p, float dt)
     {
+        // Rotate travel direction by dirVel (degrees/sec)
+        if (p.dirVel.x != 0.0f || p.dirVel.y != 0.0f || p.dirVel.z != 0.0f)
+        {
+            glm::quat dRot = glm::angleAxis(glm::radians(p.dirVel.x * dt), glm::vec3(1, 0, 0))
+                           * glm::angleAxis(glm::radians(p.dirVel.y * dt), glm::vec3(0, 1, 0))
+                           * glm::angleAxis(glm::radians(p.dirVel.z * dt), glm::vec3(0, 0, 1));
+            p.vel = dRot * p.vel;
+        }
+
         // Semi-implicit Euler: velocity first, then position
         p.vel   += p.accel * dt;
         p.pos   += p.vel   * dt;
@@ -248,6 +267,14 @@ namespace CG
         glEnableVertexAttribArray(3);
         glVertexAttribDivisor(3, 1);
 
+        // Location 4: instanceRot (float, per-instance) — billboard rotation in radians
+        glGenBuffers(1, &m_instanceRotVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, m_instanceRotVBO);
+        glBufferData(GL_ARRAY_BUFFER, m_maxParticles * sizeof(float), nullptr, GL_STREAM_DRAW);
+        glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
+        glEnableVertexAttribArray(4);
+        glVertexAttribDivisor(4, 1);
+
         glBindVertexArray(0);
 
         // ── Ribbon/Ring VAO (shared for Trail + Ring) ──────────────────────
@@ -308,6 +335,7 @@ namespace CG
         std::vector<glm::vec3> positions;
         std::vector<glm::vec4> colors;
         std::vector<float>     sizes;
+        std::vector<float>     rots;
 
         for (const auto& p : m_particles)
         {
@@ -319,6 +347,7 @@ namespace CG
             positions.push_back(p->pos);
             colors.push_back(c);
             sizes.push_back(p->scale);
+            rots.push_back(p->rot);
         }
 
         if (positions.empty()) return;
@@ -334,6 +363,9 @@ namespace CG
 
         glBindBuffer(GL_ARRAY_BUFFER, m_instanceSizeVBO);
         glBufferData(GL_ARRAY_BUFFER, count * sizeof(float), sizes.data(), GL_STREAM_DRAW);
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_instanceRotVBO);
+        glBufferData(GL_ARRAY_BUFFER, count * sizeof(float), rots.data(), GL_STREAM_DRAW);
 
         shader->use();
         shader->setUnifMat4("view", view);

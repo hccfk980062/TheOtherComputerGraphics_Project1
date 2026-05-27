@@ -16,6 +16,7 @@ namespace CG
         glm::vec3 pos    = glm::vec3(0);
         glm::vec3 vel    = glm::vec3(0, 1, 0);
         glm::vec3 accel  = glm::vec3(0);
+        glm::vec3 dirVel = glm::vec3(0);  // angular velocity of travel direction (degrees/sec, XYZ)
 
         float rot      = 0.0f;
         float rotVel   = 0.0f;

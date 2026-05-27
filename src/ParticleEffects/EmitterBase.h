@@ -58,6 +58,16 @@ namespace CG
         float ringOuterRadius = 0.5f;
         int   ringSegments    = 32;
 
+        // Direction offset (Euler angles in degrees) applied to velocity and acceleration.
+        // Rotates the particle's travel direction in the emitter's local frame.
+        glm::vec3 initDir        = glm::vec3(0.0f);
+        glm::vec3 initDirRand    = glm::vec3(0.0f);
+
+        // Angular velocity of travel direction (degrees/sec, XYZ).
+        // Continuously rotates vel each frame, creating curved/spiral trajectories.
+        glm::vec3 initDirVel     = glm::vec3(0.0f);
+        glm::vec3 initDirVelRand = glm::vec3(0.0f);
+
         ParticleType particleType = ParticleType::Sprite;
     };
 
@@ -128,6 +138,7 @@ namespace CG
         GLuint m_instancePosVBO   = 0;
         GLuint m_instanceColorVBO = 0;
         GLuint m_instanceSizeVBO  = 0;
+        GLuint m_instanceRotVBO   = 0;
         GLuint m_ribbonVAO        = 0;
         GLuint m_ribbonVBO        = 0;
         bool   m_gpuInitialized   = false;

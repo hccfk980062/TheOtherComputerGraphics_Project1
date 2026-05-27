@@ -161,9 +161,16 @@ namespace CG
         ImGui::TextDisabled("Init Accel  /  Offset Amplitude");
         DragVec3Pair("##acc", "##accR", p.initAccel, p.initAccelRand);
 
-        // Rotation
+        // Direction
         ImGui::Separator();
-        ImGui::TextDisabled("Rot / RotVel / RotAccel  (rad)");
+        ImGui::TextDisabled("Direction Offset  /  Amplitude  (degrees, XYZ Euler)");
+        DragVec3Pair("##dir",    "##dirR",    p.initDir,    p.initDirRand,    0.5f, -360.0f, 360.0f);
+        ImGui::TextDisabled("Direction Vel  /  Amplitude  (degrees/sec)");
+        DragVec3Pair("##dirVel", "##dirVelR", p.initDirVel, p.initDirVelRand, 0.5f, -3600.0f, 3600.0f);
+
+        // Billboard Rotation
+        ImGui::Separator();
+        ImGui::TextDisabled("Billboard Rot / RotVel / RotAccel  (rad)");
         DragFloatPair("Rot##v",      "Rot##r",      p.initRot,      p.initRotRand,      0.01f);
         DragFloatPair("RotVel##v",   "RotVel##r",   p.initRotVel,   p.initRotVelRand,   0.01f);
         DragFloatPair("RotAccel##v", "RotAccel##r", p.initRotAccel, p.initRotAccelRand, 0.01f);

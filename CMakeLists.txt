@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ─── Collect Sources (Only from src/) ───────────────────────────
-file(GLOB_RECURSE SRC_FILES
+file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_SOURCE_DIR}/src/*.h"
     "${CMAKE_SOURCE_DIR}/Project1_CMAKE.cpp"
@@ -56,13 +56,17 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMENT "複製 DLLs 到輸出目錄..."
 )
 
-file(GLOB SHADER_FOLDER "${CMAKE_SOURCE_DIR}/ShaderPrograms")
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+file(GLOB_RECURSE SHADER_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/ShaderPrograms/*")
+add_custom_command(
+    OUTPUT "${CMAKE_BINARY_DIR}/shader_copy.stamp"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${SHADER_FOLDER}
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>/ShaderPrograms
-    COMMENT "複製 著色器檔案 到輸出目錄..."
+        "${CMAKE_SOURCE_DIR}/ShaderPrograms"
+        "${CMAKE_BINARY_DIR}/ShaderPrograms"
+    COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_BINARY_DIR}/shader_copy.stamp"
+    DEPENDS ${SHADER_FILES}
+    COMMENT "複製著色器檔案到輸出目錄..."
 )
+add_custom_target(CopyShaders ALL DEPENDS "${CMAKE_BINARY_DIR}/shader_copy.stamp")
 
 file(GLOB SHADER_FOLDER "${CMAKE_SOURCE_DIR}/objModels")
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
