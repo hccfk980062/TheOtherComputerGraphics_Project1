@@ -69,6 +69,8 @@ namespace CG
         glm::vec3 initDirVelRand = glm::vec3(0.0f);
 
         ParticleType particleType = ParticleType::Sprite;
+
+        bool fadeOverLifetime = true;
     };
 
     class EmitterBase

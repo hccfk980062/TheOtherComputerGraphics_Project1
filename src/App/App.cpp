@@ -6,8 +6,10 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_glfw.h>
 #include <ImGuizmo.h>
+#include <ImGuiFileDialog/ImGuiFileDialog.h>
 
 #include "App.h"
+#include "Scene/SceneSerializer.h"
 
 namespace CG
 {
@@ -146,6 +148,40 @@ namespace CG
             if (m_showParticleEditor)
                 m_particleEditorWindow->Display();
 
+            // ── 場景存檔對話框 ────────────────────────────────────────────────
+            if (ImGuiFileDialog::Instance()->Display("SceneSaveDlg", 32, ImVec2(400, 250)))
+            {
+                if (ImGuiFileDialog::Instance()->IsOk())
+                {
+                    std::string path = ImGuiFileDialog::Instance()->GetFilePathName();
+                    if (!CG::SaveScene(path, mainScene.get()))
+                        fprintf(stderr, "SaveScene failed: %s\n", path.c_str());
+                }
+                ImGuiFileDialog::Instance()->Close();
+            }
+
+            // ── 場景載入對話框 ────────────────────────────────────────────────
+            if (ImGuiFileDialog::Instance()->Display("SceneLoadDlg", 32, ImVec2(400, 250)))
+            {
+                if (ImGuiFileDialog::Instance()->IsOk())
+                {
+                    std::string path = ImGuiFileDialog::Instance()->GetFilePathName();
+                    if (CG::LoadScene(path, mainScene.get()))
+                    {
+                        // 重設選取狀態，並清除所有指向舊 SceneObject 的 Undo/Redo 命令
+                        mainScene->selectedObject = nullptr;
+                        commandStack.Clear();
+                        // 讓 SequencerWindow 把軌道指標重新對應到新建立的 SceneObject
+                        sequencerWindow->RefreshAfterSceneReload();
+                    }
+                    else
+                    {
+                        fprintf(stderr, "LoadScene failed: %s\n", path.c_str());
+                    }
+                }
+                ImGuiFileDialog::Instance()->Close();
+            }
+
             // 將 ImGui 繪製資料提交至 GPU
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -208,6 +244,23 @@ namespace CG
         // 選單列：提供切換各工具視窗的入口
         if (ImGui::BeginMenuBar())
         {
+            if (ImGui::BeginMenu("File"))
+            {
+                if (ImGui::MenuItem("Save Scene..."))
+                {
+                    IGFD::FileDialogConfig cfg;
+                    cfg.path     = ".";
+                    cfg.fileName = "scene.json";
+                    ImGuiFileDialog::Instance()->OpenDialog("SceneSaveDlg", "Save Scene", ".json", cfg);
+                }
+                if (ImGui::MenuItem("Load Scene..."))
+                {
+                    IGFD::FileDialogConfig cfg;
+                    cfg.path = ".";
+                    ImGuiFileDialog::Instance()->OpenDialog("SceneLoadDlg", "Load Scene", ".json", cfg);
+                }
+                ImGui::EndMenu();
+            }
             if (ImGui::BeginMenu("Tools"))
             {
                 if (ImGui::MenuItem("Particle Editor", nullptr, m_showParticleEditor))

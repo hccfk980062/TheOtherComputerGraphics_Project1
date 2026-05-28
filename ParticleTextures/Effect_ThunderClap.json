@@ -1,0 +1,144 @@
+{
+  "emitters": [
+    {
+      "children": [],
+      "endFrame": 140,
+      "maxParticles": 100,
+      "name": "ThunderClap_Thunder",
+      "spawnCount": 2,
+      "spawnInterval": 0.05000000074505806,
+      "spawnProps": {
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fadeOverLifetime": false,
+        "initAccel": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initAccelRand": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initPos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initPosRand": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initRot": 0.0,
+        "initRotAccel": 0.0,
+        "initRotAccelRand": 0.0,
+        "initRotRand": 3.140000104904175,
+        "initRotVel": 0.0,
+        "initRotVelRand": 0.0,
+        "initScale": 10.0,
+        "initScaleAccel": 0.0,
+        "initScaleAccelRand": 0.0,
+        "initScaleRand": 6.0,
+        "initScaleVel": 0.0,
+        "initScaleVelRand": 0.0,
+        "initVel": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initVelRand": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "lifetime": 0.20000000298023224,
+        "lifetimeRand": 0.10000000149011612,
+        "maxTrailLength": 20,
+        "particleType": 0,
+        "ringInnerRadius": 0.20000000298023224,
+        "ringOuterRadius": 0.5,
+        "ringSegments": 32,
+        "texturePath": "C:\\Users\\Myo\\ProgrammersDelight\\CStuffs\\CtestFiles\\3-2\\TheOtherComputerGraphics\\Project1_CMAKE\\ParticleTextures\\ThunderClap_Thunder.png",
+        "trailWidth": 0.10000000149011612
+      },
+      "startFrame": 20,
+      "type": 0
+    },
+    {
+      "children": [],
+      "endFrame": 140,
+      "maxParticles": 2,
+      "name": "ThunderClap_Core",
+      "spawnCount": 1,
+      "spawnInterval": 0.05000000074505806,
+      "spawnProps": {
+        "color": [
+          0.17241376638412476,
+          1.0,
+          0.8422929048538208,
+          1.0
+        ],
+        "fadeOverLifetime": false,
+        "initAccel": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initAccelRand": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initPos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initPosRand": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initRot": 0.0,
+        "initRotAccel": 0.0,
+        "initRotAccelRand": 0.0,
+        "initRotRand": 0.0,
+        "initRotVel": 0.0,
+        "initRotVelRand": 0.0,
+        "initScale": 8.0,
+        "initScaleAccel": 0.0,
+        "initScaleAccelRand": 0.0,
+        "initScaleRand": 0.0,
+        "initScaleVel": -0.20000000298023224,
+        "initScaleVelRand": 0.0,
+        "initVel": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initVelRand": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "lifetime": 0.05000000074505806,
+        "lifetimeRand": 0.0,
+        "maxTrailLength": 20,
+        "particleType": 0,
+        "ringInnerRadius": 0.20000000298023224,
+        "ringOuterRadius": 0.5,
+        "ringSegments": 32,
+        "texturePath": "",
+        "trailWidth": 0.10000000149011612
+      },
+      "startFrame": 20,
+      "type": 0
+    }
+  ]
+}

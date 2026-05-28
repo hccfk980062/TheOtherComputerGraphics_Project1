@@ -340,10 +340,9 @@ namespace CG
         for (const auto& p : m_particles)
         {
             if (!p->alive) continue;
-            // Fade alpha toward end of lifetime
-            float t = 1.0f - p->age / p->lifetime;
             glm::vec4 c = p->color;
-            c.a *= t;
+            if (m_spawnProps.fadeOverLifetime)
+                c.a *= 1.0f - p->age / p->lifetime;
             positions.push_back(p->pos);
             colors.push_back(c);
             sizes.push_back(p->scale);
@@ -411,7 +410,7 @@ namespace CG
             verts.reserve(N * 2 * 6);
 
             float w = halfWidth * p->scale;
-            float overallAlpha = 1.0f - p->age / p->lifetime;
+            float overallAlpha = m_spawnProps.fadeOverLifetime ? 1.0f - p->age / p->lifetime : 1.0f;
 
             for (int i = 0; i < N; i++)
             {
@@ -478,7 +477,7 @@ namespace CG
         {
             if (!p->alive) continue;
 
-            float alpha = p->color.a * (1.0f - p->age / p->lifetime);
+            float alpha = m_spawnProps.fadeOverLifetime ? p->color.a * (1.0f - p->age / p->lifetime) : p->color.a;
             float cr = p->color.r, cg = p->color.g, cb = p->color.b;
             shader->setUnifVec3("trailColor", cr, cg, cb);
 

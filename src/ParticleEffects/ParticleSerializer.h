@@ -53,6 +53,7 @@ namespace CG
         j["ringOuterRadius"]    = p.ringOuterRadius;
         j["ringSegments"]       = p.ringSegments;
         j["particleType"]       = static_cast<int>(p.particleType);
+        j["fadeOverLifetime"]   = p.fadeOverLifetime;
         return j;
     }
 
@@ -92,6 +93,7 @@ namespace CG
         p.ringOuterRadius   = j.value("ringOuterRadius",0.5f);
         p.ringSegments      = j.value("ringSegments",   32);
         p.particleType      = static_cast<ParticleType>(j.value("particleType", 0));
+        p.fadeOverLifetime  = j.value("fadeOverLifetime", true);
         return p;
     }
 

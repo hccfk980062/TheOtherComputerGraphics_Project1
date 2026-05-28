@@ -70,6 +70,12 @@ namespace CG
         // 重設父節點，同時保持物件世界座標不變（分解並回寫 local transform）
         void ReparentObject(SceneObject* obj, SceneObject* newParent);
 
+        // 直接重設父節點（不保持世界座標，載入場景時使用）
+        void ReparentObjectDirect(SceneObject* obj, SceneObject* newParent);
+
+        // 清除所有場景物件與狀態，為重新初始化做準備（LoadScene 前必須呼叫）
+        void Reset();
+
     private:
         void InitIKChains();  // 為場景中的 Gundam 初始化四肢 IK 鏈
 

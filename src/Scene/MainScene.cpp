@@ -232,6 +232,47 @@ namespace CG
             RenderObjectForPickingRecursive(child.get(), shader);
     }
 
+    // 清除所有場景物件與狀態，為重新初始化做準備
+    void MainScene::Reset()
+    {
+        // 先清除 IK 鏈（內部存有 SceneObject* 非持有指標）
+        ikChains.clear();
+
+        // 斷開 Emitter ↔ SceneObject 雙向指標，防止懸掛參考
+        for (auto& e : m_particleEmitters)
+            e->ownerNode = nullptr;
+        m_particleEmitters.clear();
+        m_emitterObjects.clear();
+
+        // ObjectList 只有非持有指標，先清空避免後續誤用
+        ObjectList.clear();
+        selectedObject = nullptr;
+
+        // 清除場景樹（遞迴刪除所有 SceneObject）
+        rootObject.children.clear();
+
+        objectCount         = 0;
+        m_particleFrame     = 0;
+        m_particleTimeAccum = 0.0f;
+    }
+
+    // 直接重設父節點（不保持世界座標）
+    // 與 ReparentObject 的差別：不分解世界矩陣，只移動節點在樹中的位置
+    void MainScene::ReparentObjectDirect(SceneObject* obj, SceneObject* newParent)
+    {
+        SceneObject* oldParent = obj->parent ? obj->parent : &rootObject;
+        auto& siblings = oldParent->children;
+        auto it = std::find_if(siblings.begin(), siblings.end(),
+            [obj](const auto& c) { return c.get() == obj; });
+        if (it == siblings.end()) return;
+
+        auto node    = std::move(*it);
+        siblings.erase(it);
+        node->parent = newParent;
+        newParent->children.push_back(std::move(node));
+        obj->MarkDirty();
+    }
+
     // 重設父節點：保持物件世界座標不變
     // 步驟：記錄舊世界矩陣 → 從舊父節點摘除 → 掛入新父節點 → 分解新 local matrix
     void MainScene::ReparentObject(SceneObject* obj, SceneObject* newParent)

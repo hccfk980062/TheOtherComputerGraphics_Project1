@@ -304,6 +304,9 @@ namespace CG
             animationGroups.push_back(AnimationGroup(obj));
         }
 
+        // 場景重新載入後呼叫：重新將所有軌道的 linkedObject 指向新的 SceneObject
+        void RefreshAfterSceneReload();
+
     private:
         MainScene*    targetScene = nullptr;
         CommandStack* m_cmdStack  = nullptr;

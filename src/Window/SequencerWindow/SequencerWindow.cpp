@@ -7,6 +7,29 @@ namespace CG
 
     auto SequencerWindow::Initialize() -> bool { return true; }
 
+    // 場景重新載入後，將所有軌道的 linkedObject 重新指向新的 SceneObject。
+    // 舊指標在 Reset() 後已失效；此處依命名規則（groupName + "_" + trackName）重新查找。
+    void SequencerWindow::RefreshAfterSceneReload()
+    {
+        if (!targetScene) return;
+
+        for (auto& group : animationGroups)
+        {
+            for (auto& track : group.tracks)
+            {
+                // 一般物件：objectName = groupName + "_" + trackName
+                SceneObject* obj = targetScene->FindObjectByName(group.groupName + "_" + track.trackName);
+                // Emitter 物件：groupName == trackName == objectName
+                if (!obj && group.groupName == track.trackName)
+                    obj = targetScene->FindObjectByName(group.groupName);
+                track.linkedObject = obj;
+            }
+        }
+
+        // 移除已不存在的群組，補建新加入的群組（含新載入的 Emitter）
+        SyncAnimationGroups();
+    }
+
     void SequencerWindow::SyncAnimationGroups()
     {
         if (!targetScene) return;

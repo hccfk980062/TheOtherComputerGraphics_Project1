@@ -185,6 +185,7 @@ namespace CG
         // Appearance
         ImGui::Separator();
         ImGui::TextDisabled("Appearance");
+        ImGui::Checkbox("Fade Over Lifetime", &p.fadeOverLifetime);
         ImGui::ColorEdit4("Color", glm::value_ptr(p.color));
 
         // ── Texture ───────────────────────────────────────────────────────
