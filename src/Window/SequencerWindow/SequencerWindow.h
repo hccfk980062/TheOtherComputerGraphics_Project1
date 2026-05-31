@@ -132,9 +132,9 @@ namespace CG
             timeAccumulated += now - lastTime;
             lastTime = now;
 
-            if (timeAccumulated >= 0.015)
+            while (timeAccumulated >= 0.015)
             {
-                timeAccumulated = 0;
+                timeAccumulated -= 0.015;
                 ++currentFrame;
                 if (currentFrame > endFrame)
                 {
@@ -144,10 +144,11 @@ namespace CG
                     {
                         currentFrame = endFrame;
                         isPlaying    = false;
+                        break;
                     }
                 }
-                TransformToFrame();
             }
+            TransformToFrame();
         }
     };
 

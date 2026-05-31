@@ -1,0 +1,74 @@
+{
+  "emitters": [
+    {
+      "children": [],
+      "endFrame": 120,
+      "maxParticles": 100,
+      "name": "PointEmitter",
+      "spawnCount": 25,
+      "spawnInterval": 0.5,
+      "spawnProps": {
+        "color": [
+          1.0,
+          0.5,
+          0.10000000149011612,
+          1.0
+        ],
+        "fadeOverLifetime": true,
+        "initAccel": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initAccelRand": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initPos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initPosRand": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "initRot": 0.0,
+        "initRotAccel": 0.0,
+        "initRotAccelRand": 0.0,
+        "initRotRand": 0.0,
+        "initRotVel": 0.0,
+        "initRotVelRand": 0.0,
+        "initScale": 5.0,
+        "initScaleAccel": 0.0,
+        "initScaleAccelRand": 0.0,
+        "initScaleRand": 0.0,
+        "initScaleVel": 0.0,
+        "initScaleVelRand": 0.0,
+        "initVel": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "initVelRand": [
+          100.0,
+          0.10000000149011612,
+          100.0
+        ],
+        "lifetime": 1.0,
+        "lifetimeRand": 0.0,
+        "maxTrailLength": 20,
+        "particleType": 0,
+        "ringInnerRadius": 0.20000000298023224,
+        "ringOuterRadius": 0.5,
+        "ringSegments": 32,
+        "texturePath": "",
+        "trailWidth": 0.10000000149011612
+      },
+      "startFrame": 60,
+      "type": 0
+    }
+  ]
+}

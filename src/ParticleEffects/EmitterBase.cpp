@@ -108,18 +108,36 @@ namespace CG
         }
 
         // 2. Emit new particles only within active timeline range
-        if (timelineFrame >= m_startFrame && timelineFrame <= m_endFrame)
-        {
-            m_spawnAccumulator += dt;
-            if(m_spawnInterval < 0.001) 
-                m_spawnInterval = 0.001;
+        bool isActive = (timelineFrame >= m_startFrame && timelineFrame <= m_endFrame);
 
-            while (m_spawnAccumulator >= m_spawnInterval)
+        if (isActive)
+        {
+            if (!m_wasActive)
             {
-                m_spawnAccumulator -= m_spawnInterval;
+                // First frame entering active range: emit immediately and start accumulator fresh
                 EmitBurst(m_spawnCount, basePos);
+                m_spawnAccumulator = 0.0f;
+            }
+            else
+            {
+                m_spawnAccumulator += dt;
+                if (m_spawnInterval < 0.001f)
+                    m_spawnInterval = 0.001f;
+
+                while (m_spawnAccumulator >= m_spawnInterval)
+                {
+                    m_spawnAccumulator -= m_spawnInterval;
+                    EmitBurst(m_spawnCount, basePos);
+                }
             }
         }
+        else
+        {
+            // Outside active range: clear accumulator so re-entry never causes a catch-up burst
+            m_spawnAccumulator = 0.0f;
+        }
+
+        m_wasActive = isActive;
     }
 
     void EmitterBase::EmitBurst(int count, glm::vec3 basePos)

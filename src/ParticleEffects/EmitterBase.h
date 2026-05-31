@@ -128,6 +128,7 @@ namespace CG
 
     private:
         float        m_spawnAccumulator = 0.0f;
+        bool         m_wasActive        = false;
         std::mt19937 m_rng;
 
         void EmitBurst(int count, glm::vec3 basePos);
